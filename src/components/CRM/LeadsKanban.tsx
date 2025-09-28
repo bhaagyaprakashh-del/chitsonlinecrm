@@ -12,6 +12,7 @@ import {
   DragOverlay,
   DragStartEvent,
   UniqueIdentifier,
+  DragOverEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -250,8 +251,24 @@ interface KanbanColumnProps {
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, leads, color }) => {
+  const {
+    setNodeRef,
+    isOver,
+  } = useSortable({
+    id: status,
+    data: {
+      type: 'column',
+      status: status,
+    },
+  });
+
   return (
-    <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-4 border border-yellow-400/30 min-h-[600px] flex flex-col">
+    <div 
+      ref={setNodeRef}
+      className={`bg-slate-800/40 backdrop-blur-xl rounded-2xl p-4 border border-yellow-400/30 min-h-[600px] flex flex-col transition-all ${
+        isOver ? 'border-yellow-400/60 bg-slate-700/40' : ''
+      }`}
+    >
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <div className="flex items-center space-x-2">
           <div className={`w-3 h-3 rounded-full ${color}`}></div>
@@ -338,7 +355,7 @@ export const LeadsKanban: React.FC = () => {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { 
-      activationConstraint: { distance: 4 } 
+      activationConstraint: { distance: 4 }
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -403,54 +420,49 @@ export const LeadsKanban: React.FC = () => {
     const activeId = active.id;
     const overId = over.id;
 
-    // Find the containers (statuses)
-    const activeContainer = findContainer(activeId);
-    const overContainer = findContainer(overId) || over.id;
+    const activeLead = leads.find(lead => lead.id === activeId);
+    if (!activeLead) return;
 
-    if (!activeContainer) return;
+    const activeContainer = activeLead.status;
+    let overContainer: string;
 
-    // If dropping on a column header, use that column's status
-    const targetStatus = typeof overContainer === 'string' && columns.some(col => col.status === overContainer) 
-      ? overContainer 
-      : findContainer(overId);
+    // Check if dropping on a column (droppable area)
+    if (columns.some(col => col.status === overId)) {
+      overContainer = overId as string;
+    } else {
+      // Dropping on another lead card
+      const overLead = leads.find(lead => lead.id === overId);
+      if (!overLead) return;
+      overContainer = overLead.status;
+    }
 
-    if (!targetStatus) return;
+    if (!overContainer) return;
 
     setLeads(prevLeads => {
       const activeIndex = prevLeads.findIndex(lead => lead.id === activeId);
-      const overIndex = prevLeads.findIndex(lead => lead.id === overId);
 
       if (activeIndex === -1) return prevLeads;
 
       const newLeads = [...prevLeads];
-      const activeLead = newLeads[activeIndex];
 
-      // If moving to a different column
-      if (activeContainer !== targetStatus) {
-        // Update the lead's status
+      // If moving to a different column, update the lead's status
+      if (activeContainer !== overContainer) {
         newLeads[activeIndex] = {
-          ...activeLead,
-          status: targetStatus as Lead['status'],
+          ...newLeads[activeIndex],
+          status: overContainer as Lead['status'],
           updatedAt: new Date().toISOString()
         };
+      }
 
-        // If dropping on another lead, reorder within the target column
-        if (overIndex !== -1 && newLeads[overIndex].status === targetStatus) {
-          // Remove from current position
+      // Handle reordering within the same column or when dropping on another lead
+      if (overId !== activeId) {
+        const overIndex = newLeads.findIndex(lead => lead.id === overId);
+        if (overIndex !== -1) {
+          // Remove the active lead from its current position
           const [movedLead] = newLeads.splice(activeIndex, 1);
-          
-          // Find the correct insertion index in the target column
-          const targetColumnLeads = newLeads.filter(lead => lead.status === targetStatus);
-          const targetLeadIndex = targetColumnLeads.findIndex(lead => lead.id === overId);
-          const actualOverIndex = newLeads.findIndex(lead => lead.id === overId);
-          
-          // Insert at the new position
-          newLeads.splice(actualOverIndex, 0, movedLead);
-        }
-      } else {
-        // Reordering within the same column
-        if (overIndex !== -1 && activeIndex !== overIndex) {
-          return arrayMove(newLeads, activeIndex, overIndex);
+          // Insert it at the new position
+          const insertIndex = activeIndex < overIndex ? overIndex - 1 : overIndex;
+          newLeads.splice(insertIndex, 0, movedLead);
         }
       }
 
@@ -496,21 +508,23 @@ export const LeadsKanban: React.FC = () => {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex space-x-4 min-w-max">
-            {columns.map((column) => {
-              const columnLeads = getLeadsByStatus(column.status);
-              return (
-                <div key={column.status} className="w-80 flex-shrink-0">
-                  <KanbanColumn
-                    title={column.title}
-                    status={column.status}
-                    leads={columnLeads}
-                    color={column.color}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          <SortableContext items={[...leads.map(lead => lead.id), ...columns.map(col => col.status)]}>
+            <div className="flex space-x-4 min-w-max">
+              {columns.map((column) => {
+                const columnLeads = getLeadsByStatus(column.status);
+                return (
+                  <div key={column.status} className="w-80 flex-shrink-0">
+                    <KanbanColumn
+                      title={column.title}
+                      status={column.status}
+                      leads={columnLeads}
+                      color={column.color}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </SortableContext>
           
           <DragOverlay>
             <DragOverlayCard lead={activeLead} />
