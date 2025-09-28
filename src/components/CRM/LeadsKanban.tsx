@@ -27,49 +27,32 @@ import { CSS } from '@dnd-kit/utilities';
 
 const STORAGE_KEY = 'leads.kanban.v1';
 
-const initialLeads: Lead[] = [
-  // New Leads
+// Use the same leads data as AllLeads component
+const sampleLeads: Lead[] = [
   {
     id: '1',
-    name: 'Digital Innovations Pvt Ltd',
-    email: 'contact@digitalinnovations.com',
+    name: 'TechCorp Solutions',
+    email: 'contact@techcorp.com',
     phone: '+91 98765 43210',
-    company: 'Digital Innovations Pvt Ltd',
+    company: 'TechCorp Solutions Pvt Ltd',
     source: 'website',
-    status: 'new',
+    status: 'qualified',
     priority: 'high',
-    value: 850000,
+    value: 500000,
     assignedTo: 'Priya Sharma',
-    createdAt: '2024-03-15T09:30:00',
-    updatedAt: '2024-03-15T09:30:00',
-    notes: ['Website inquiry received', 'Interested in corporate chit schemes'],
-    tags: ['website-lead', 'corporate', 'high-value'],
-    nextFollowUp: '2024-03-16T10:00:00'
+    createdAt: '2024-03-10T10:30:00',
+    updatedAt: '2024-03-15T14:20:00',
+    notes: ['Initial contact made', 'Interested in premium schemes', 'Budget confirmed'],
+    tags: ['corporate', 'high-value', 'premium'],
+    nextFollowUp: '2024-03-18T10:00:00'
   },
   {
     id: '2',
-    name: 'Global Tech Solutions',
-    email: 'info@globaltech.com',
+    name: 'Sunita Reddy',
+    email: 'sunita.reddy@gmail.com',
     phone: '+91 98765 43211',
-    company: 'Global Tech Solutions',
-    source: 'cold-call',
-    status: 'new',
-    priority: 'medium',
-    value: 450000,
-    assignedTo: 'Vikram Singh',
-    createdAt: '2024-03-15T11:15:00',
-    updatedAt: '2024-03-15T11:15:00',
-    notes: ['Cold call made', 'Showed interest in premium schemes'],
-    tags: ['cold-call', 'tech-company'],
-    nextFollowUp: '2024-03-17T14:00:00'
-  },
-  {
-    id: '3',
-    name: 'Rajesh Kumar',
-    email: 'rajesh.kumar@personal.com',
-    phone: '+91 98765 43212',
     source: 'referral',
-    status: 'new',
+    status: 'contacted',
     priority: 'medium',
     value: 250000,
     assignedTo: 'Karthik Nair',
@@ -87,25 +70,6 @@ const initialLeads: Lead[] = [
     company: 'StartupInc Technologies',
     source: 'cold-call',
     status: 'new',
-    priority: 'low',
-    value: 150000,
-    assignedTo: 'Karthik Nair',
-    createdAt: '2024-03-15T16:20:00',
-    updatedAt: '2024-03-15T16:20:00',
-    notes: ['Referred by existing customer', 'Individual investor'],
-    tags: ['referral', 'individual'],
-    nextFollowUp: '2024-03-18T11:00:00'
-  },
-
-  // Contacted Leads
-  {
-    id: '4',
-    name: 'Manufacturing Excellence Ltd',
-    email: 'procurement@manufacturing.com',
-    phone: '+91 98765 43213',
-    company: 'Manufacturing Excellence Ltd',
-    source: 'advertisement',
-    status: 'contacted',
     priority: 'low',
     value: 100000,
     assignedTo: 'Vikram Singh',
@@ -176,36 +140,18 @@ const initialLeads: Lead[] = [
     status: 'lost',
     priority: 'low',
     value: 650000,
+    assignedTo: 'Karthik Nair',
     createdAt: '2024-03-11T14:20:00',
     updatedAt: '2024-03-13T12:30:00',
-    notes: ['Responded to social media campaign', 'Very interested in gold schemes'],
-    tags: ['social-media', 'gold-scheme', 'hot-lead'],
-    nextFollowUp: '2024-03-16T11:30:00'
-
-  // Qualified Leads
+    notes: ['Budget constraints', 'Went with competitor'],
+    tags: ['lost-deal', 'competitor'],
+    nextFollowUp: '2024-06-01T10:00:00'
   },
   {
-    id: '6',
-    name: 'TechCorp Solutions',
-    email: 'contact@techcorp.com',
-    phone: '+91 98765 43215',
-    company: 'TechCorp Solutions Pvt Ltd',
-    source: 'website',
-    status: 'qualified',
-    priority: 'high',
-    value: 750000,
-    assignedTo: 'Priya Sharma',
-    createdAt: '2024-03-08T10:30:00',
-    updatedAt: '2024-03-14T14:20:00',
-    notes: ['Budget confirmed', 'Decision maker identified', 'Ready for proposal'],
-    tags: ['corporate', 'high-value', 'qualified'],
-    nextFollowUp: '2024-03-17T10:00:00'
-  },
-  {
-    id: '7',
+    id: '8',
     name: 'Healthcare Solutions',
     email: 'admin@healthcare.com',
-    phone: '+91 98765 43216',
+    phone: '+91 98765 43217',
     company: 'Healthcare Solutions Pvt Ltd',
     source: 'referral',
     status: 'qualified',
@@ -214,80 +160,60 @@ const initialLeads: Lead[] = [
     assignedTo: 'Vikram Singh',
     createdAt: '2024-03-09T13:45:00',
     updatedAt: '2024-03-13T16:30:00',
-    notes: ['Qualified lead', 'Needs proposal for employee benefits scheme'],
-    tags: ['healthcare', 'employee-benefits', 'qualified'],
+    notes: ['Qualified lead', 'Needs proposal for employee benefits'],
+    tags: ['healthcare', 'employee-benefits'],
     nextFollowUp: '2024-03-18T14:00:00'
   },
   {
-    id: '8',
-    name: 'Priya Patel',
-    email: 'priya.patel@email.com',
-    phone: '+91 98765 43217',
-    source: 'website',
-    status: 'qualified',
-    priority: 'low',
-    value: 200000,
-    assignedTo: 'Karthik Nair',
-    createdAt: '2024-03-10T09:15:00',
-    updatedAt: '2024-03-14T11:45:00',
-    notes: ['Individual investor', 'Qualified for silver scheme'],
-    tags: ['individual', 'silver-scheme', 'qualified'],
-    nextFollowUp: '2024-03-19T10:30:00'
-  },
-
-  // Proposal Stage
-  {
     id: '9',
-    name: 'Retail Chain Co',
-    email: 'procurement@retailchain.com',
+    name: 'Digital Innovations',
+    email: 'contact@digitalinnovations.com',
     phone: '+91 98765 43218',
-    company: 'Retail Chain Co',
-    source: 'advertisement',
-    status: 'proposal',
+    company: 'Digital Innovations Pvt Ltd',
+    source: 'website',
+    status: 'new',
     priority: 'high',
-    value: 1200000,
-    assignedTo: 'Karthik Nair',
-    createdAt: '2024-03-05T11:20:00',
-    updatedAt: '2024-03-12T16:45:00',
-    notes: ['Proposal sent', 'Awaiting management approval', 'Large enterprise deal'],
-    tags: ['retail', 'enterprise', 'proposal-sent'],
-    nextFollowUp: '2024-03-18T15:00:00'
+    value: 850000,
+    assignedTo: 'Priya Sharma',
+    createdAt: '2024-03-15T09:30:00',
+    updatedAt: '2024-03-15T09:30:00',
+    notes: ['Website inquiry received', 'Interested in corporate schemes'],
+    tags: ['website-lead', 'corporate'],
+    nextFollowUp: '2024-03-16T10:00:00'
   },
   {
     id: '10',
-    name: 'StartupInc Technologies',
-    email: 'founder@startupinc.com',
+    name: 'Small Business Owner',
+    email: 'owner@smallbiz.com',
     phone: '+91 98765 43219',
-    company: 'StartupInc Technologies',
-    source: 'cold-call',
-    status: 'proposal',
-    priority: 'medium',
-    value: 380000,
-    assignedTo: 'Priya Sharma',
-    createdAt: '2024-03-07T14:30:00',
-    updatedAt: '2024-03-13T10:15:00',
-    notes: ['Startup funding secured', 'Proposal under review'],
-    tags: ['startup', 'tech', 'proposal'],
-    nextFollowUp: '2024-03-17T13:00:00'
+    company: 'Small Business Enterprises',
+    source: 'referral',
+    status: 'contacted',
+    priority: 'low',
+    value: 120000,
+    assignedTo: 'Karthik Nair',
+    createdAt: '2024-03-13T16:00:00',
+    updatedAt: '2024-03-15T10:45:00',
+    notes: ['Small business owner', 'Interested in basic schemes'],
+    tags: ['small-business', 'basic-scheme'],
+    nextFollowUp: '2024-03-18T14:30:00'
   },
-
-  // Negotiation Stage
   {
     id: '11',
-    name: 'Financial Services Group',
-    email: 'partnerships@finservices.com',
+    name: 'Premium Investors Group',
+    email: 'invest@premium.com',
     phone: '+91 98765 43220',
-    company: 'Financial Services Group',
-    source: 'referral',
-    status: 'negotiation',
+    company: 'Premium Investors Group',
+    source: 'website',
+    status: 'proposal',
     priority: 'high',
-    value: 950000,
+    value: 1100000,
     assignedTo: 'Priya Sharma',
-    createdAt: '2024-03-03T12:00:00',
-    updatedAt: '2024-03-14T17:20:00',
-    notes: ['In final negotiations', 'Discussing terms and pricing'],
-    tags: ['financial-services', 'partnership', 'negotiation'],
-    nextFollowUp: '2024-03-16T14:30:00'
+    createdAt: '2024-03-04T11:15:00',
+    updatedAt: '2024-03-12T13:50:00',
+    notes: ['High-value investor group', 'Proposal under review'],
+    tags: ['premium', 'investor-group'],
+    nextFollowUp: '2024-03-17T11:00:00'
   },
   {
     id: '12',
@@ -302,34 +228,15 @@ const initialLeads: Lead[] = [
     assignedTo: 'Karthik Nair',
     createdAt: '2024-03-06T15:45:00',
     updatedAt: '2024-03-13T14:10:00',
-    notes: ['Negotiating payment terms', 'Educational sector pricing discussion'],
-    tags: ['education', 'non-profit', 'negotiation'],
+    notes: ['Negotiating payment terms', 'Educational pricing discussion'],
+    tags: ['education', 'negotiation'],
     nextFollowUp: '2024-03-17T16:00:00'
   },
-
-  // Won Deals
   {
     id: '13',
-    name: 'Success Story Inc',
-    email: 'ceo@successstory.com',
-    phone: '+91 98765 43222',
-    company: 'Success Story Inc',
-    source: 'referral',
-    status: 'won',
-    priority: 'high',
-    value: 800000,
-    assignedTo: 'Priya Sharma',
-    createdAt: '2024-02-28T10:00:00',
-    updatedAt: '2024-03-12T17:30:00',
-    notes: ['Deal closed successfully', 'Payment received', 'Excellent customer'],
-    tags: ['won-deal', 'referral', 'success'],
-    nextFollowUp: '2024-04-12T10:00:00'
-  },
-  {
-    id: '14',
     name: 'Consulting Firm Ltd',
     email: 'partners@consulting.com',
-    phone: '+91 98765 43223',
+    phone: '+91 98765 43222',
     company: 'Consulting Firm Ltd',
     source: 'advertisement',
     status: 'won',
@@ -338,33 +245,15 @@ const initialLeads: Lead[] = [
     assignedTo: 'Vikram Singh',
     createdAt: '2024-02-25T14:20:00',
     updatedAt: '2024-03-10T12:45:00',
-    notes: ['Successful closure', 'Quick decision process', 'Potential for expansion'],
-    tags: ['consulting', 'won-deal', 'expansion-potential'],
+    notes: ['Successful closure', 'Quick decision process'],
+    tags: ['consulting', 'won-deal'],
     nextFollowUp: '2024-05-10T10:00:00'
   },
   {
-    id: '15',
-    name: 'Anita Sharma',
-    email: 'anita.sharma@personal.com',
-    phone: '+91 98765 43224',
-    source: 'referral',
-    status: 'won',
-    priority: 'low',
-    value: 180000,
-    assignedTo: 'Karthik Nair',
-    createdAt: '2024-03-01T11:30:00',
-    updatedAt: '2024-03-11T15:20:00',
-    notes: ['Individual investor', 'Smooth onboarding process', 'Happy customer'],
-    tags: ['individual', 'referral', 'won-deal'],
-    nextFollowUp: '2024-04-11T10:00:00'
-  },
-
-  // Lost Deals
-  {
-    id: '16',
+    id: '14',
     name: 'Budget Constraints Corp',
     email: 'finance@budgetcorp.com',
-    phone: '+91 98765 43225',
+    phone: '+91 98765 43223',
     company: 'Budget Constraints Corp',
     source: 'cold-call',
     status: 'lost',
@@ -373,86 +262,28 @@ const initialLeads: Lead[] = [
     assignedTo: 'Karthik Nair',
     createdAt: '2024-02-20T09:00:00',
     updatedAt: '2024-03-05T14:20:00',
-    notes: ['Budget constraints', 'Decided to postpone investment'],
-    tags: ['lost-deal', 'budget-issue', 'postponed'],
+    notes: ['Budget constraints', 'Decided to postpone'],
+    tags: ['lost-deal', 'budget-issue'],
     nextFollowUp: '2024-06-01T10:00:00'
   },
   {
-    id: '17',
-    name: 'Competitor Choice Ltd',
-    email: 'contact@competitor.com',
-    phone: '+91 98765 43226',
-    company: 'Competitor Choice Ltd',
-    source: 'website',
-    status: 'lost',
+    id: '15',
+    name: 'Global Tech Solutions',
+    email: 'info@globaltech.com',
+    phone: '+91 98765 43224',
+    company: 'Global Tech Solutions',
+    source: 'cold-call',
+    status: 'new',
     priority: 'medium',
-    value: 520000,
+    value: 450000,
     assignedTo: 'Vikram Singh',
-    createdAt: '2024-02-15T13:45:00',
-    updatedAt: '2024-03-08T11:30:00',
-    notes: ['Went with competitor', 'Price was the deciding factor'],
-    tags: ['lost-deal', 'competitor', 'price-sensitive'],
-    nextFollowUp: '2024-08-01T10:00:00'
-  },
-
-  // Additional Contacted Leads
-  {
-    id: '18',
-    name: 'Small Business Owner',
-    email: 'owner@smallbiz.com',
-    phone: '+91 98765 43227',
-    company: 'Small Business Enterprises',
-    source: 'referral',
-    status: 'contacted',
-    priority: 'low',
-    value: 120000,
-    assignedTo: 'Karthik Nair',
-    createdAt: '2024-03-13T16:00:00',
-    updatedAt: '2024-03-15T10:45:00',
-    notes: ['Small business owner', 'Interested in basic schemes'],
-    tags: ['small-business', 'basic-scheme'],
-    nextFollowUp: '2024-03-18T14:30:00'
-  },
-
-  // Additional Qualified Leads
-  {
-    id: '19',
-    name: 'Premium Investors Group',
-    email: 'invest@premium.com',
-    phone: '+91 98765 43228',
-    company: 'Premium Investors Group',
-    source: 'website',
-    status: 'qualified',
-    priority: 'high',
-    value: 1100000,
-    assignedTo: 'Priya Sharma',
-    createdAt: '2024-03-04T11:15:00',
-    updatedAt: '2024-03-12T13:50:00',
-    notes: ['High-value investor group', 'Multiple scheme interest', 'Budget approved'],
-    tags: ['premium', 'investor-group', 'high-value'],
-    nextFollowUp: '2024-03-17T11:00:00'
-  },
-
-  // Additional Proposal Stage
-  {
-    id: '20',
-    name: 'Corporate Benefits Ltd',
-    email: 'hr@corporatebenefits.com',
-    phone: '+91 98765 43229',
-    company: 'Corporate Benefits Ltd',
-    source: 'referral',
-    status: 'proposal',
-    priority: 'high',
-    value: 890000,
-    assignedTo: 'Vikram Singh',
-    createdAt: '2024-03-02T09:30:00',
-    updatedAt: '2024-03-11T15:15:00',
-    notes: ['Employee benefits proposal sent', 'HR team reviewing'],
-    tags: ['corporate', 'employee-benefits', 'proposal'],
-    nextFollowUp: '2024-03-18T10:30:00'
+    createdAt: '2024-03-15T11:15:00',
+    updatedAt: '2024-03-15T11:15:00',
+    notes: ['Cold call made', 'Showed interest in premium schemes'],
+    tags: ['cold-call', 'tech-company'],
+    nextFollowUp: '2024-03-17T14:00:00'
   }
 ];
-
 interface SortableLeadCardProps {
   lead: Lead;
 }
@@ -675,10 +506,10 @@ export const LeadsKanban: React.FC = () => {
         setLeads(JSON.parse(savedLeads));
       } catch (error) {
         console.error('Failed to parse saved leads:', error);
-        setLeads(initialLeads);
+        setLeads(sampleLeads);
       }
     } else {
-      setLeads(initialLeads);
+      setLeads(sampleLeads);
     }
   }, []);
 
