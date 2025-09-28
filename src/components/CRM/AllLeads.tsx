@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, CreditCard as Edit, Trash2, Eye, Mail, Phone, MapPin, Calendar, DollarSign, Users, Star, CheckCircle, XCircle, AlertTriangle, Clock, Award, Target, TrendingUp, Filter, Download, Upload, MoreVertical, User, Building, Flag, Zap } from 'lucide-react';
+import { Plus, Search, CreditCard as Edit, Trash2, Eye, Mail, Phone, MapPin, Calendar, DollarSign, Users, Star, CheckCircle, XCircle, AlertTriangle, Clock, Award, Target, TrendingUp, Filter, Download, Upload, MoreVertical, User, Building, Flag, Zap, FileText } from 'lucide-react';
 import { Lead } from '../../types/crm';
 
 const sampleLeads: Lead[] = [
