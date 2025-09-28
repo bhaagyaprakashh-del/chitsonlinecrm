@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Eye, Edit, Phone, Mail, DollarSign, Calendar, User } from 'lucide-react';
+import { Plus, Search, Filter, Eye, CreditCard as Edit, Phone, Mail, DollarSign, Calendar, User } from 'lucide-react';
 import { Lead } from '../../types/crm';
 
 const sampleLeads: Lead[] = [

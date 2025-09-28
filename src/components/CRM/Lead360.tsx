@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Edit, Mail, Phone, Building, Calendar, DollarSign, User, Tag, Activity, FileText } from 'lucide-react';
+import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarSign, User, Tag, Activity, FileText } from 'lucide-react';
 import { Lead } from '../../types/crm';
 
 interface Lead360Props {
