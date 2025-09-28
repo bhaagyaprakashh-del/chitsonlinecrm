@@ -181,7 +181,6 @@ const initialLeads: Lead[] = [
     notes: ['Responded to social media campaign', 'Very interested in gold schemes'],
     tags: ['social-media', 'gold-scheme', 'hot-lead'],
     nextFollowUp: '2024-03-16T11:30:00'
-    nextFollowUp: '2024-03-16T15:00:00'
 
   // Qualified Leads
   },
