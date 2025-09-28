@@ -647,13 +647,6 @@ export const LeadsKanban: React.FC = () => {
             <Plus className="h-4 w-4 mr-2" />
             Add Lead
           </button>
-          <button 
-            onClick={handleAddLead}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-all"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Lead
-          </button>
         </div>
       </div>
 
