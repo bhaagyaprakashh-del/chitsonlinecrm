@@ -12,10 +12,8 @@ import {
   DragOverlay,
   DragStartEvent,
   UniqueIdentifier,
-  DragOverEvent,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -27,8 +25,8 @@ import { CSS } from '@dnd-kit/utilities';
 
 const STORAGE_KEY = 'leads.kanban.v1';
 
-// Import the same leads data used in AllLeads component
-const sampleLeads: Lead[] = [
+// Use the same leads data as AllLeads component
+const initialLeads: Lead[] = [
   {
     id: '1',
     name: 'TechCorp Solutions',
@@ -268,22 +266,23 @@ const sampleLeads: Lead[] = [
   },
   {
     id: '15',
-    name: 'Global Tech Solutions',
-    email: 'info@globaltech.com',
+    name: 'Tech Startup Hub',
+    email: 'info@techstartup.com',
     phone: '+91 98765 43224',
-    company: 'Global Tech Solutions',
-    source: 'cold-call',
+    company: 'Tech Startup Hub',
+    source: 'social-media',
     status: 'new',
     priority: 'medium',
-    value: 450000,
+    value: 320000,
     assignedTo: 'Vikram Singh',
     createdAt: '2024-03-15T11:15:00',
     updatedAt: '2024-03-15T11:15:00',
-    notes: ['Cold call made', 'Showed interest in premium schemes'],
-    tags: ['cold-call', 'tech-company'],
+    notes: ['Social media inquiry', 'Interested in startup packages'],
+    tags: ['social-media', 'startup'],
     nextFollowUp: '2024-03-17T14:00:00'
   }
 ];
+
 interface SortableLeadCardProps {
   lead: Lead;
 }
@@ -387,24 +386,8 @@ interface KanbanColumnProps {
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, leads, color }) => {
-  const {
-    setNodeRef,
-    isOver,
-  } = useSortable({
-    id: status,
-    data: {
-      type: 'column',
-      status: status,
-    },
-  });
-
   return (
-    <div 
-      ref={setNodeRef}
-      className={`bg-slate-800/40 backdrop-blur-xl rounded-2xl p-4 border border-yellow-400/30 min-h-[600px] flex flex-col transition-all ${
-        isOver ? 'border-yellow-400/60 bg-slate-700/40' : ''
-      }`}
-    >
+    <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-4 border border-yellow-400/30 min-h-[600px] flex flex-col">
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <div className="flex items-center space-x-2">
           <div className={`w-3 h-3 rounded-full ${color}`}></div>
@@ -423,6 +406,11 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, leads, color
           {leads.map((lead) => (
             <SortableLeadCard key={lead.id} lead={lead} />
           ))}
+          {leads.length === 0 && (
+            <div className="text-center py-8 text-slate-500">
+              <p className="text-sm">No leads in this stage</p>
+            </div>
+          )}
         </div>
       </SortableContext>
     </div>
@@ -503,19 +491,26 @@ export const LeadsKanban: React.FC = () => {
     const savedLeads = localStorage.getItem(STORAGE_KEY);
     if (savedLeads) {
       try {
-        setLeads(JSON.parse(savedLeads));
+        const parsedLeads = JSON.parse(savedLeads);
+        if (Array.isArray(parsedLeads) && parsedLeads.length > 0) {
+          setLeads(parsedLeads);
+        } else {
+          setLeads(initialLeads);
+        }
       } catch (error) {
         console.error('Failed to parse saved leads:', error);
-        setLeads(sampleLeads);
+        setLeads(initialLeads);
       }
     } else {
-      setLeads(sampleLeads);
+      setLeads(initialLeads);
     }
   }, []);
 
   // Save leads to localStorage whenever leads change
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
+    if (leads.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
+    }
   }, [leads]);
 
   const columns = [
@@ -536,11 +531,6 @@ export const LeadsKanban: React.FC = () => {
 
   const getLeadsByStatus = (status: string) => {
     return filteredLeads.filter(lead => lead.status === status);
-  };
-
-  const findContainer = (id: UniqueIdentifier) => {
-    const lead = leads.find(l => l.id === id);
-    return lead?.status || null;
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -590,23 +580,31 @@ export const LeadsKanban: React.FC = () => {
         };
       }
 
-      // Handle reordering within the same column or when dropping on another lead
-      if (overId !== activeId) {
-        const overIndex = newLeads.findIndex(lead => lead.id === overId);
-        if (overIndex !== -1) {
-          // Remove the active lead from its current position
-          const [movedLead] = newLeads.splice(activeIndex, 1);
-          // Insert it at the new position
-          const insertIndex = activeIndex < overIndex ? overIndex - 1 : overIndex;
-          newLeads.splice(insertIndex, 0, movedLead);
-        }
-      }
-
       return newLeads;
     });
   };
 
   const activeLead = activeId ? leads.find(lead => lead.id === activeId) : null;
+
+  const stats = {
+    total: leads.length,
+    new: getLeadsByStatus('new').length,
+    contacted: getLeadsByStatus('contacted').length,
+    qualified: getLeadsByStatus('qualified').length,
+    proposal: getLeadsByStatus('proposal').length,
+    negotiation: getLeadsByStatus('negotiation').length,
+    won: getLeadsByStatus('won').length,
+    lost: getLeadsByStatus('lost').length,
+    totalValue: leads.reduce((sum, lead) => sum + lead.value, 0)
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
   return (
     <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
@@ -636,6 +634,49 @@ export const LeadsKanban: React.FC = () => {
         </div>
       </div>
 
+      {/* Stats Bar */}
+      <div className="p-4 border-b border-yellow-400/30 bg-slate-800/40 backdrop-blur-xl flex-shrink-0">
+        <div className="grid grid-cols-4 md:grid-cols-8 gap-4 text-center">
+          <div>
+            <p className="text-slate-400 text-xs">Total</p>
+            <p className="text-slate-50 font-bold">{stats.total}</p>
+          </div>
+          <div>
+            <p className="text-blue-400 text-xs">New</p>
+            <p className="text-blue-400 font-bold">{stats.new}</p>
+          </div>
+          <div>
+            <p className="text-yellow-400 text-xs">Contacted</p>
+            <p className="text-yellow-400 font-bold">{stats.contacted}</p>
+          </div>
+          <div>
+            <p className="text-green-400 text-xs">Qualified</p>
+            <p className="text-green-400 font-bold">{stats.qualified}</p>
+          </div>
+          <div>
+            <p className="text-purple-400 text-xs">Proposal</p>
+            <p className="text-purple-400 font-bold">{stats.proposal}</p>
+          </div>
+          <div>
+            <p className="text-orange-400 text-xs">Negotiation</p>
+            <p className="text-orange-400 font-bold">{stats.negotiation}</p>
+          </div>
+          <div>
+            <p className="text-emerald-400 text-xs">Won</p>
+            <p className="text-emerald-400 font-bold">{stats.won}</p>
+          </div>
+          <div>
+            <p className="text-red-400 text-xs">Lost</p>
+            <p className="text-red-400 font-bold">{stats.lost}</p>
+          </div>
+        </div>
+        <div className="mt-2 text-center">
+          <p className="text-slate-400 text-sm">
+            Total Pipeline Value: <span className="text-green-400 font-semibold">{formatCurrency(stats.totalValue)}</span>
+          </p>
+        </div>
+      </div>
+
       {/* Kanban Board */}
       <div className="flex-1 overflow-x-auto p-4">
         <DndContext
@@ -644,23 +685,21 @@ export const LeadsKanban: React.FC = () => {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <SortableContext items={[...leads.map(lead => lead.id), ...columns.map(col => col.status)]}>
-            <div className="flex space-x-4 min-w-max">
-              {columns.map((column) => {
-                const columnLeads = getLeadsByStatus(column.status);
-                return (
-                  <div key={column.status} className="w-80 flex-shrink-0">
-                    <KanbanColumn
-                      title={column.title}
-                      status={column.status}
-                      leads={columnLeads}
-                      color={column.color}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </SortableContext>
+          <div className="flex space-x-4 min-w-max">
+            {columns.map((column) => {
+              const columnLeads = getLeadsByStatus(column.status);
+              return (
+                <div key={column.status} className="w-80 flex-shrink-0">
+                  <KanbanColumn
+                    title={column.title}
+                    status={column.status}
+                    leads={columnLeads}
+                    color={column.color}
+                  />
+                </div>
+              );
+            })}
+          </div>
           
           <DragOverlay>
             <DragOverlayCard lead={activeLead} />
