@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, Eye, CreditCard as Edit, Phone, Mail, DollarSign, Calendar, User, MoreVertical, GripVertical } from 'lucide-react';
 import { Lead } from '../../types/crm';
 import {
@@ -496,6 +497,7 @@ const DragOverlayCard: React.FC<{ lead: Lead | null }> = ({ lead }) => {
 };
 
 export const LeadsKanban: React.FC = () => {
+  const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
@@ -616,6 +618,10 @@ export const LeadsKanban: React.FC = () => {
     }).format(amount);
   };
 
+  const handleAddLead = () => {
+    navigate('/leads-new');
+  };
+
   return (
     <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
       {/* Header */}
@@ -638,6 +644,13 @@ export const LeadsKanban: React.FC = () => {
             />
           </div>
           <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-all">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Lead
+          </button>
+          <button 
+            onClick={handleAddLead}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-all"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Lead
           </button>
