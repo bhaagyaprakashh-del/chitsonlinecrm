@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarSign, User, Tag, Activity, FileText } from 'lucide-react';
 import { Lead } from '../../types/crm';
 import toast from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 interface Lead360Props {
   leadId: string;
@@ -68,26 +69,20 @@ export const Lead360: React.FC<Lead360Props> = ({ leadId, onBack }) => {
   };
 
   const handleCall = () => {
-    // Open phone dialer or show call interface
     if (navigator.userAgent.match(/Mobile|Android|iPhone|iPad/)) {
-      // On mobile devices, open the phone dialer
       window.location.href = `tel:${lead.phone}`;
     } else {
-      // On desktop, show call interface or copy number
       navigator.clipboard.writeText(lead.phone).then(() => {
         toast.success(`Phone number ${lead.phone} copied to clipboard`);
       }).catch(() => {
         toast.error('Could not copy phone number');
       });
     }
-    
-    // Log the call activity (you can expand this to save to database)
     console.log(`Call initiated to ${lead.name} at ${lead.phone}`);
     toast.success(`Call initiated to ${lead.name}`);
   };
 
   const handleEmail = () => {
-    // Create email with pre-filled subject and body
     const subject = encodeURIComponent(`Follow-up: ${lead.company || lead.name} - Chit Fund Inquiry`);
     const body = encodeURIComponent(`Dear ${lead.name},
 
@@ -102,11 +97,7 @@ ${lead.assignedTo}
 Ramnirmalchits Financial Services`);
     
     const mailtoLink = `mailto:${lead.email}?subject=${subject}&body=${body}`;
-    
-    // Open email client
     window.location.href = mailtoLink;
-    
-    // Log the email activity
     console.log(`Email composed for ${lead.name} at ${lead.email}`);
     toast.success(`Email client opened for ${lead.name}`);
   };
@@ -114,14 +105,11 @@ Ramnirmalchits Financial Services`);
   const handleEditLead = () => {
     setIsEditing(true);
     toast.success('Edit mode enabled');
-    // You can expand this to show an edit form or navigate to edit page
-    // For now, we'll just toggle edit mode
   };
 
   const handleSaveEdit = () => {
     setIsEditing(false);
     toast.success('Lead updated successfully');
-    // Here you would save the changes to your backend/storage
   };
 
   const handleCancelEdit = () => {
