@@ -229,15 +229,19 @@ export const LeadsKanban: React.FC = () => {
 
   // Load leads from shared storage
   useEffect(() => {
+    console.log('Kanban: Loading leads data...');
     initializeLeadsData();
     const loadedLeads = loadLeads();
+    console.log('Kanban: Loaded leads:', loadedLeads.length);
     setLeads(loadedLeads);
   }, []);
 
   // Listen for storage changes (when new leads are added)
   useEffect(() => {
     const handleStorageChange = () => {
+      console.log('Kanban: Storage changed, reloading leads...');
       const updatedLeads = loadLeads();
+      console.log('Kanban: Updated leads count:', updatedLeads.length);
       setLeads(updatedLeads);
     };
 

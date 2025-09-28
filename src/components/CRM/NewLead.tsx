@@ -58,6 +58,7 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
 
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (!formData.email.trim()) newErrors.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Please enter a valid email';
     if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
     if (!formData.assignedTo) newErrors.assignedTo = 'Please assign to an agent';
     if (formData.value <= 0) newErrors.value = 'Lead value must be greater than 0';
@@ -68,20 +69,35 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted with data:', formData);
+    
     if (validateForm()) {
+      console.log('Validation passed, creating lead...');
+      
       const leadData = {
         ...formData,
         id: Date.now().toString(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        notes: formData.notes ? [formData.notes] : []
+        notes: formData.notes ? [formData.notes] : [],
+        nextFollowUp: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
       };
       
-      // Save to localStorage
-      addLead(leadData as Lead);
+      console.log('Lead data to save:', leadData);
       
-      toast.success(`Lead "${leadData.name}" created successfully!`);
-      onSave(leadData);
+      // Save to localStorage
+      try {
+        addLead(leadData as Lead);
+        console.log('Lead saved successfully');
+        toast.success(`Lead "${leadData.name}" created successfully!`);
+        onSave(leadData);
+      } catch (error) {
+        console.error('Error saving lead:', error);
+        toast.error('Failed to save lead. Please try again.');
+      }
+    } else {
+      console.log('Validation failed:', errors);
+      toast.error('Please fix the errors before saving');
     }
   };
 

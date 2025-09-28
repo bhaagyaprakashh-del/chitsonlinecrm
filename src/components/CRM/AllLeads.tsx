@@ -133,15 +133,19 @@ export const AllLeads: React.FC = () => {
 
   // Load leads on component mount
   React.useEffect(() => {
+    console.log('AllLeads: Loading leads data...');
     initializeLeadsData();
     const loadedLeads = loadLeads();
+    console.log('AllLeads: Loaded leads:', loadedLeads.length);
     setLeads(loadedLeads);
   }, []);
 
   // Listen for storage changes (when new leads are added)
   React.useEffect(() => {
     const handleStorageChange = () => {
+      console.log('AllLeads: Storage changed, reloading leads...');
       const updatedLeads = loadLeads();
+      console.log('AllLeads: Updated leads count:', updatedLeads.length);
       setLeads(updatedLeads);
     };
 

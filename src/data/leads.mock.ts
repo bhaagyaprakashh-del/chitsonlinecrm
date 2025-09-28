@@ -508,6 +508,8 @@ export const saveLeads = (leads: Lead[]) => {
 export const addLead = (lead: Lead) => {
   const existingLeads = loadLeads();
   const updatedLeads = [...existingLeads, lead];
+  console.log('Adding lead to storage:', lead);
+  console.log('Updated leads array:', updatedLeads);
   saveLeads(updatedLeads);
   return updatedLeads;
 };
@@ -530,8 +532,15 @@ export const deleteLead = (leadId: string) => {
 
 // Initialize sample data if none exists
 export const initializeLeadsData = () => {
-  const existingLeads = loadLeads();
-  if (existingLeads.length === 0) {
+  try {
+    const existingLeads = loadLeads();
+    console.log('Existing leads count:', existingLeads.length);
+    if (existingLeads.length === 0) {
+      console.log('No existing leads found, initializing with mock data');
+      saveLeads(mockLeads);
+    }
+  } catch (error) {
+    console.error('Error initializing leads data:', error);
     saveLeads(mockLeads);
   }
 };
