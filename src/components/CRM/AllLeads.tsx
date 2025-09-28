@@ -2,84 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, CreditCard as Edit, Trash2, Eye, Mail, Phone, MapPin, Calendar, DollarSign, Users, Star, CheckCircle, XCircle, AlertTriangle, Clock, Award, Target, TrendingUp, Filter, Download, Upload, MoreVertical, User, Building, Flag, Zap, FileText } from 'lucide-react';
 import { Lead } from '../../types/crm';
+import { loadLeads, saveLeads, initializeLeadsData } from '../../data/leads.mock';
 
-const LEADS_STORAGE_KEY = 'leads_data';
-
-const sampleLeads: Lead[] = [
-  {
-    id: '1',
-    name: 'TechCorp Solutions',
-    email: 'contact@techcorp.com',
-    phone: '+91 98765 43210',
-    company: 'TechCorp Solutions Pvt Ltd',
-    source: 'website',
-    status: 'qualified',
-    priority: 'high',
-    value: 500000,
-    assignedTo: 'Priya Sharma',
-    createdAt: '2024-03-10T10:30:00',
-    updatedAt: '2024-03-15T14:20:00',
-    notes: ['Initial contact made', 'Interested in premium schemes', 'Budget confirmed'],
-    tags: ['corporate', 'high-value', 'premium'],
-    nextFollowUp: '2024-03-18T10:00:00'
-  },
-  {
-    id: '2',
-    name: 'Sunita Reddy',
-    email: 'sunita.reddy@gmail.com',
-    phone: '+91 98765 43211',
-    source: 'referral',
-    status: 'contacted',
-    priority: 'medium',
-    value: 250000,
-    assignedTo: 'Karthik Nair',
-    createdAt: '2024-03-12T15:45:00',
-    updatedAt: '2024-03-14T11:30:00',
-    notes: ['Referred by existing customer', 'Interested in silver scheme'],
-    tags: ['referral', 'silver-scheme'],
-    nextFollowUp: '2024-03-17T14:00:00'
-  },
-  {
-    id: '3',
-    name: 'StartupInc',
-    email: 'founder@startupinc.com',
-    phone: '+91 98765 43212',
-    company: 'StartupInc Technologies',
-    source: 'cold-call',
-    status: 'new',
-    priority: 'low',
-    value: 100000,
-    assignedTo: 'Vikram Singh',
-    createdAt: '2024-03-14T09:15:00',
-    updatedAt: '2024-03-14T09:15:00',
-    notes: ['Cold call made', 'Needs more information'],
-    tags: ['startup', 'tech'],
-    nextFollowUp: '2024-03-16T16:00:00'
-  }
-];
-
-// Storage utilities
-const loadLeads = (): Lead[] => {
-  try {
-    const saved = localStorage.getItem(LEADS_STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : sampleLeads;
-    }
-    return sampleLeads;
-  } catch (error) {
-    console.error('Failed to load leads:', error);
-    return sampleLeads;
-  }
-};
-
-const saveLeads = (leads: Lead[]) => {
-  try {
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
-  } catch (error) {
-    console.error('Failed to save leads:', error);
-  }
-};
 const LeadCard: React.FC<{ lead: Lead }> = React.memo(({ lead }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -209,13 +133,9 @@ export const AllLeads: React.FC = () => {
 
   // Load leads on component mount
   React.useEffect(() => {
+    initializeLeadsData();
     const loadedLeads = loadLeads();
     setLeads(loadedLeads);
-    
-    // Save initial data if none exists
-    if (!localStorage.getItem(LEADS_STORAGE_KEY)) {
-      saveLeads(loadedLeads);
-    }
   }, []);
 
   // Listen for storage changes (when new leads are added)
@@ -235,6 +155,7 @@ export const AllLeads: React.FC = () => {
       window.removeEventListener('leadsUpdated', handleStorageChange);
     };
   }, []);
+
   const filteredLeads = useMemo(() => leads.filter(lead => {
     const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
