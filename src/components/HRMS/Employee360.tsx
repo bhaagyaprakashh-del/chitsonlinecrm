@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Edit, Mail, Phone, Building, Calendar, DollarSign, User, Shield, FileText, Activity } from 'lucide-react';
+import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarSign, User, Shield, FileText, Activity } from 'lucide-react';
 import { Employee } from '../../types/hrms';
 
 interface Employee360Props {

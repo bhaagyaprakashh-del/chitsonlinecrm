@@ -1,37 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  Eye,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  DollarSign,
-  Users,
-  Star,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Clock,
-  Award,
-  Target,
-  TrendingUp,
-  Filter,
-  Download,
-  Upload,
-  MoreVertical,
-  User,
-  Building,
-  CreditCard,
-  Shield,
-  Flag,
-  Zap,
-  Crown,
-  Briefcase
-} from 'lucide-react';
+import { Plus, Search, CreditCard as Edit, Trash2, Eye, Mail, Phone, MapPin, Calendar, DollarSign, Users, Star, CheckCircle, XCircle, AlertTriangle, Clock, Award, Target, TrendingUp, Filter, Download, Upload, MoreVertical, User, Building, CreditCard, Shield, Flag, Zap, Crown, Briefcase } from 'lucide-react';
 import { Employee } from '../../types/hrms';
 
 const sampleEmployees: Employee[] = [
