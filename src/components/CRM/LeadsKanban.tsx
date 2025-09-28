@@ -184,6 +184,7 @@ const initialLeads: Lead[] = [
 
   // Qualified Leads
   },
+  {
     id: '6',
     name: 'TechCorp Solutions',
     email: 'contact@techcorp.com',
