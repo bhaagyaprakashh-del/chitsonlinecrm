@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarSign, User, Tag, Activity, FileText } from 'lucide-react';
 import { Lead } from '../../types/crm';
 import toast from 'react-hot-toast';
-import toast from 'react-hot-toast';
 
 interface Lead360Props {
   leadId: string;
