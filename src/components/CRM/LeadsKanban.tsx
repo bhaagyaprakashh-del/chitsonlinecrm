@@ -12,6 +12,8 @@ import {
   DragOverlay,
   DragStartEvent,
   UniqueIdentifier,
+  DragOverEvent,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -386,8 +388,17 @@ interface KanbanColumnProps {
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, leads, color }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: status,
+  });
+
   return (
-    <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-4 border border-yellow-400/30 min-h-[600px] flex flex-col">
+    <div 
+      ref={setNodeRef}
+      className={`bg-slate-800/40 backdrop-blur-xl rounded-2xl p-4 border min-h-[600px] flex flex-col transition-all ${
+        isOver ? 'border-blue-500/50 bg-blue-500/10' : 'border-yellow-400/30'
+      }`}
+    >
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <div className="flex items-center space-x-2">
           <div className={`w-3 h-3 rounded-full ${color}`}></div>
@@ -407,8 +418,11 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, status, leads, color
             <SortableLeadCard key={lead.id} lead={lead} />
           ))}
           {leads.length === 0 && (
-            <div className="text-center py-8 text-slate-500">
+            <div className={`text-center py-8 text-slate-500 border-2 border-dashed rounded-lg transition-all ${
+              isOver ? 'border-blue-400/50 bg-blue-500/5' : 'border-slate-600/50'
+            }`}>
               <p className="text-sm">No leads in this stage</p>
+              {isOver && <p className="text-xs text-blue-400 mt-1">Drop lead here</p>}
             </div>
           )}
         </div>
@@ -479,7 +493,7 @@ export const LeadsKanban: React.FC = () => {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { 
-      activationConstraint: { distance: 4 }
+      activationConstraint: { distance: 8 }
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -549,38 +563,35 @@ export const LeadsKanban: React.FC = () => {
     const activeLead = leads.find(lead => lead.id === activeId);
     if (!activeLead) return;
 
-    const activeContainer = activeLead.status;
-    let overContainer: string;
-
-    // Check if dropping on a column (droppable area)
+    // Determine the target column
+    let targetStatus: string;
+    
+    // If dropping directly on a column
     if (columns.some(col => col.status === overId)) {
-      overContainer = overId as string;
+      targetStatus = overId as string;
     } else {
-      // Dropping on another lead card
+      // If dropping on another lead, get that lead's column
       const overLead = leads.find(lead => lead.id === overId);
-      if (!overLead) return;
-      overContainer = overLead.status;
+      if (overLead) {
+        targetStatus = overLead.status;
+      } else {
+        return; // Invalid drop target
+      }
     }
 
-    if (!overContainer) return;
+    // Only update if the status actually changes
+    if (activeLead.status === targetStatus) return;
 
     setLeads(prevLeads => {
-      const activeIndex = prevLeads.findIndex(lead => lead.id === activeId);
-
-      if (activeIndex === -1) return prevLeads;
-
-      const newLeads = [...prevLeads];
-
-      // If moving to a different column, update the lead's status
-      if (activeContainer !== overContainer) {
-        newLeads[activeIndex] = {
-          ...newLeads[activeIndex],
-          status: overContainer as Lead['status'],
-          updatedAt: new Date().toISOString()
-        };
-      }
-
-      return newLeads;
+      return prevLeads.map(lead => 
+        lead.id === activeId 
+          ? { 
+              ...lead, 
+              status: targetStatus as Lead['status'],
+              updatedAt: new Date().toISOString()
+            }
+          : lead
+      );
     });
   };
 
