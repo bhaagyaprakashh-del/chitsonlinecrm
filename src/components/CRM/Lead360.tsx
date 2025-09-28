@@ -113,7 +113,7 @@ Ramnirmalchits Financial Services`);
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    toast.info('Edit cancelled');
+    toast('Edit cancelled');
   };
 
   const tabs = [
