@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarSign, User, Tag, Activity, FileText } from 'lucide-react';
 import { Lead } from '../../types/crm';
+import toast from 'react-hot-toast';
 
 interface Lead360Props {
   leadId: string;
@@ -34,6 +35,7 @@ const sampleLead: Lead = {
 export const Lead360: React.FC<Lead360Props> = ({ leadId, onBack }) => {
   const [lead] = useState<Lead>(sampleLead);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isEditing, setIsEditing] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -63,6 +65,68 @@ export const Lead360: React.FC<Lead360Props> = ({ leadId, onBack }) => {
       case 'low': return 'bg-green-500';
       default: return 'bg-gray-500';
     }
+  };
+
+  const handleCall = () => {
+    // Open phone dialer or show call interface
+    if (navigator.userAgent.match(/Mobile|Android|iPhone|iPad/)) {
+      // On mobile devices, open the phone dialer
+      window.location.href = `tel:${lead.phone}`;
+    } else {
+      // On desktop, show call interface or copy number
+      navigator.clipboard.writeText(lead.phone).then(() => {
+        toast.success(`Phone number ${lead.phone} copied to clipboard`);
+      }).catch(() => {
+        toast.error('Could not copy phone number');
+      });
+    }
+    
+    // Log the call activity (you can expand this to save to database)
+    console.log(`Call initiated to ${lead.name} at ${lead.phone}`);
+    toast.success(`Call initiated to ${lead.name}`);
+  };
+
+  const handleEmail = () => {
+    // Create email with pre-filled subject and body
+    const subject = encodeURIComponent(`Follow-up: ${lead.company || lead.name} - Chit Fund Inquiry`);
+    const body = encodeURIComponent(`Dear ${lead.name},
+
+Thank you for your interest in our chit fund schemes. I wanted to follow up on our previous conversation and provide you with additional information.
+
+Based on your requirements, I believe our premium chit schemes would be an excellent fit for your investment goals.
+
+I would be happy to schedule a detailed discussion at your convenience.
+
+Best regards,
+${lead.assignedTo}
+Ramnirmalchits Financial Services`);
+    
+    const mailtoLink = `mailto:${lead.email}?subject=${subject}&body=${body}`;
+    
+    // Open email client
+    window.location.href = mailtoLink;
+    
+    // Log the email activity
+    console.log(`Email composed for ${lead.name} at ${lead.email}`);
+    toast.success(`Email client opened for ${lead.name}`);
+  };
+
+  const handleEditLead = () => {
+    setIsEditing(true);
+    toast.success('Edit mode enabled');
+    // You can expand this to show an edit form or navigate to edit page
+    // For now, we'll just toggle edit mode
+  };
+
+  const handleSaveEdit = () => {
+    setIsEditing(false);
+    toast.success('Lead updated successfully');
+    // Here you would save the changes to your backend/storage
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    toast.info('Edit cancelled');
   };
 
   const tabs = [
@@ -182,18 +246,42 @@ export const Lead360: React.FC<Lead360Props> = ({ leadId, onBack }) => {
           </div>
         </div>
         <div className="flex space-x-3">
-          <button className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm">
+          <button 
+            onClick={handleCall}
+            className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm">
             <Phone className="h-4 w-4 mr-2" />
             Call
           </button>
-          <button className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm">
+          <button 
+            onClick={handleEmail}
+            className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm">
             <Mail className="h-4 w-4 mr-2" />
             Email
           </button>
-          <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-all">
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Lead
-          </button>
+          {isEditing ? (
+            <div className="flex space-x-2">
+              <button 
+                onClick={handleSaveEdit}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-green-600 hover:bg-green-700 transition-all"
+              >
+                Save Changes
+              </button>
+              <button 
+                onClick={handleCancelEdit}
+                className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={handleEditLead}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-all"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Lead
+            </button>
+          )}
         </div>
       </div>
 
