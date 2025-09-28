@@ -1,6 +1,30 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Save, User, Building, Phone, Mail, DollarSign, Tag } from 'lucide-react';
 import { Lead } from '../../types/crm';
+import toast from 'react-hot-toast';
+
+const LEADS_STORAGE_KEY = 'leads_data';
+
+// Storage utilities
+const loadLeads = (): Lead[] => {
+  try {
+    const saved = localStorage.getItem(LEADS_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch (error) {
+    console.error('Failed to load leads:', error);
+    return [];
+  }
+};
+
+const saveLeads = (leads: Lead[]) => {
+  try {
+    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
+    // Trigger custom event to notify other components
+    window.dispatchEvent(new CustomEvent('leadsUpdated'));
+  } catch (error) {
+    console.error('Failed to save leads:', error);
+  }
+};
 
 interface NewLeadProps {
   onBack: () => void;
@@ -74,6 +98,13 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
         updatedAt: new Date().toISOString(),
         notes: formData.notes ? [formData.notes] : []
       };
+      
+      // Save to localStorage
+      const existingLeads = loadLeads();
+      const updatedLeads = [...existingLeads, leadData];
+      saveLeads(updatedLeads);
+      
+      toast.success(`Lead "${leadData.name}" created successfully!`);
       onSave(leadData);
     }
   };

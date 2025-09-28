@@ -24,7 +24,33 @@ import { CSS } from '@dnd-kit/utilities';
 
 const STORAGE_KEY = 'leads.kanban.v1';
 
-// Use the same leads data as AllLeads component
+const LEADS_STORAGE_KEY = 'leads_data';
+
+// Load leads from shared storage
+const loadLeadsFromStorage = (): Lead[] => {
+  try {
+    const saved = localStorage.getItem(LEADS_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : initialLeads;
+    }
+    return initialLeads;
+  } catch (error) {
+    console.error('Failed to load leads:', error);
+    return initialLeads;
+  }
+};
+
+const saveLeadsToStorage = (leads: Lead[]) => {
+  try {
+    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
+    // Trigger custom event to notify other components
+    window.dispatchEvent(new CustomEvent('leadsUpdated'));
+  } catch (error) {
+    console.error('Failed to save leads:', error);
+  }
+};
+
 const initialLeads: Lead[] = [
   {
     id: '1',
@@ -483,32 +509,34 @@ export const LeadsKanban: React.FC = () => {
     })
   );
 
-  // Load leads from localStorage or use initial data
+  // Load leads from shared storage
   useEffect(() => {
-    const savedLeads = localStorage.getItem(STORAGE_KEY);
-    if (savedLeads) {
-      try {
-        const parsedLeads = JSON.parse(savedLeads);
-        if (Array.isArray(parsedLeads) && parsedLeads.length > 0) {
-          setLeads(parsedLeads);
-        } else {
-          setLeads(initialLeads);
-        }
-      } catch (error) {
-        console.error('Failed to parse saved leads:', error);
-        setLeads(initialLeads);
-      }
-    } else {
-      setLeads(initialLeads);
+    const loadedLeads = loadLeadsFromStorage();
+    setLeads(loadedLeads);
+    
+    // Save initial data if none exists
+    if (!localStorage.getItem(LEADS_STORAGE_KEY)) {
+      saveLeadsToStorage(loadedLeads);
     }
   }, []);
 
-  // Save leads to localStorage whenever leads change
+  // Listen for storage changes (when new leads are added)
   useEffect(() => {
-    if (leads.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
-    }
-  }, [leads]);
+    const handleStorageChange = () => {
+      const updatedLeads = loadLeadsFromStorage();
+      setLeads(updatedLeads);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom events from the same tab
+    window.addEventListener('leadsUpdated', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('leadsUpdated', handleStorageChange);
+    };
+  }, []);
 
   const columns = [
     { title: 'New Leads', status: 'new', color: 'bg-blue-500' },
@@ -552,8 +580,7 @@ export const LeadsKanban: React.FC = () => {
     // Only update if the status actually changes
     if (activeLead.status === targetStatus) return;
 
-    setLeads(prevLeads => {
-      return prevLeads.map(lead => 
+    const updatedLeads = leads.map(lead => 
         lead.id === activeId 
           ? { 
               ...lead, 
@@ -561,8 +588,10 @@ export const LeadsKanban: React.FC = () => {
               updatedAt: new Date().toISOString()
             }
           : lead
-      );
-    });
+    );
+    
+    setLeads(updatedLeads);
+    saveLeadsToStorage(updatedLeads);
   };
 
   const activeLead = activeId ? leads.find(lead => lead.id === activeId) : null;

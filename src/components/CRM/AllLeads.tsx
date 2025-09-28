@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, CreditCard as Edit, Trash2, Eye, Mail, Phone, MapPin, Calendar, DollarSign, Users, Star, CheckCircle, XCircle, AlertTriangle, Clock, Award, Target, TrendingUp, Filter, Download, Upload, MoreVertical, User, Building, Flag, Zap, FileText } from 'lucide-react';
 import { Lead } from '../../types/crm';
 
+const LEADS_STORAGE_KEY = 'leads_data';
+
 const sampleLeads: Lead[] = [
   {
     id: '1',
@@ -56,6 +58,28 @@ const sampleLeads: Lead[] = [
   }
 ];
 
+// Storage utilities
+const loadLeads = (): Lead[] => {
+  try {
+    const saved = localStorage.getItem(LEADS_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : sampleLeads;
+    }
+    return sampleLeads;
+  } catch (error) {
+    console.error('Failed to load leads:', error);
+    return sampleLeads;
+  }
+};
+
+const saveLeads = (leads: Lead[]) => {
+  try {
+    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
+  } catch (error) {
+    console.error('Failed to save leads:', error);
+  }
+};
 const LeadCard: React.FC<{ lead: Lead }> = React.memo(({ lead }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -177,12 +201,40 @@ const LeadCard: React.FC<{ lead: Lead }> = React.memo(({ lead }) => {
 
 export const AllLeads: React.FC = () => {
   const navigate = useNavigate();
-  const [leads] = useState<Lead[]>(sampleLeads);
+  const [leads, setLeads] = useState<Lead[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [filterSource, setFilterSource] = useState<string>('all');
 
+  // Load leads on component mount
+  React.useEffect(() => {
+    const loadedLeads = loadLeads();
+    setLeads(loadedLeads);
+    
+    // Save initial data if none exists
+    if (!localStorage.getItem(LEADS_STORAGE_KEY)) {
+      saveLeads(loadedLeads);
+    }
+  }, []);
+
+  // Listen for storage changes (when new leads are added)
+  React.useEffect(() => {
+    const handleStorageChange = () => {
+      const updatedLeads = loadLeads();
+      setLeads(updatedLeads);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom events from the same tab
+    window.addEventListener('leadsUpdated', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('leadsUpdated', handleStorageChange);
+    };
+  }, []);
   const filteredLeads = useMemo(() => leads.filter(lead => {
     const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
