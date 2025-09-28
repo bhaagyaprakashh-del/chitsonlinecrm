@@ -1,15 +1,36 @@
 import React, { useState } from 'react';
 import { TrendingUp, Award, Target, DollarSign, Users, Calendar, BarChart3, PieChart } from 'lucide-react';
+import { loadLeads } from '../../data/leads.mock';
 
 export const Conversions: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('current-month');
+  const [leads] = useState(() => loadLeads());
 
-  const conversionStats = [
-    { label: 'Total Conversions', value: '24', icon: Award, color: 'text-green-400', change: '+8 this month' },
-    { label: 'Conversion Rate', value: '18.5%', icon: TrendingUp, color: 'text-blue-400', change: '+2.3%' },
-    { label: 'Avg Deal Size', value: '₹3.2L', icon: DollarSign, color: 'text-purple-400', change: '+15%' },
-    { label: 'Sales Velocity', value: '12 days', icon: Target, color: 'text-orange-400', change: '-2 days' }
-  ];
+  // Calculate real conversion stats from leads data
+  const conversionStats = React.useMemo(() => {
+    const wonLeads = leads.filter(l => l.status === 'won');
+    const lostLeads = leads.filter(l => l.status === 'lost');
+    const totalConversions = wonLeads.length;
+    const totalAttempts = wonLeads.length + lostLeads.length;
+    const conversionRate = totalAttempts > 0 ? (wonLeads.length / totalAttempts * 100).toFixed(1) : '0';
+    const avgDealSize = wonLeads.length > 0 ? wonLeads.reduce((sum, l) => sum + l.value, 0) / wonLeads.length : 0;
+    const totalValue = wonLeads.reduce((sum, l) => sum + l.value, 0);
+
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 1,
+      }).format(amount);
+    };
+
+    return [
+      { label: 'Total Conversions', value: totalConversions.toString(), icon: Award, color: 'text-green-400', change: `${wonLeads.filter(l => new Date(l.updatedAt) > new Date(Date.now() - 30*24*60*60*1000)).length} this month` },
+      { label: 'Conversion Rate', value: `${conversionRate}%`, icon: TrendingUp, color: 'text-blue-400', change: 'Win rate' },
+      { label: 'Avg Deal Size', value: formatCurrency(avgDealSize), icon: DollarSign, color: 'text-purple-400', change: 'Per conversion' },
+      { label: 'Total Won Value', value: formatCurrency(totalValue), icon: Target, color: 'text-orange-400', change: 'All time' }
+    ];
+  }, [leads]);
 
   return (
     <div className="h-full flex flex-col bg-slate-900 overflow-hidden">

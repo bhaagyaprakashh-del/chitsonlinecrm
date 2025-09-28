@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarSign, User, Tag, Activity, FileText } from 'lucide-react';
 import { Lead } from '../../types/crm';
+import { loadLeads } from '../../data/leads.mock';
 import toast from 'react-hot-toast';
 
 interface Lead360Props {
@@ -8,34 +9,33 @@ interface Lead360Props {
   onBack: () => void;
 }
 
-const sampleLead: Lead = {
-  id: '1',
-  name: 'TechCorp Solutions',
-  email: 'contact@techcorp.com',
-  phone: '+91 98765 43210',
-  company: 'TechCorp Solutions Pvt Ltd',
-  source: 'website',
-  status: 'qualified',
-  priority: 'high',
-  value: 500000,
-  assignedTo: 'Priya Sharma',
-  createdAt: '2024-03-10T10:30:00',
-  updatedAt: '2024-03-15T14:20:00',
-  notes: [
-    'Initial contact made via website form',
-    'Interested in premium chit schemes for employees',
-    'Budget confirmed at ₹5L',
-    'Decision maker: CEO Rajesh Gupta',
-    'Next meeting scheduled for proposal presentation'
-  ],
-  tags: ['corporate', 'high-value', 'premium', 'employee-benefits'],
-  nextFollowUp: '2024-03-18T10:00:00'
-};
-
 export const Lead360: React.FC<Lead360Props> = ({ leadId, onBack }) => {
-  const [lead] = useState<Lead>(sampleLead);
+  const [lead, setLead] = useState<Lead | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [isEditing, setIsEditing] = useState(false);
+
+  // Load lead data on component mount
+  React.useEffect(() => {
+    const leads = loadLeads();
+    const foundLead = leads.find(l => l.id === leadId);
+    if (foundLead) {
+      setLead(foundLead);
+    } else {
+      // Fallback to first lead if specific ID not found
+      setLead(leads[0] || null);
+    }
+  }, [leadId]);
+
+  if (!lead) {
+    return (
+      <div className="h-full flex items-center justify-center bg-slate-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <p className="text-slate-400">Loading lead details...</p>
+        </div>
+      </div>
+    );
+  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {

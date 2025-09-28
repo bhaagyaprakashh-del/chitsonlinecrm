@@ -90,7 +90,11 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
         addLead(leadData as Lead);
         console.log('Lead saved successfully');
         toast.success(`Lead "${leadData.name}" created successfully!`);
-        onSave(leadData);
+        
+        // Navigate back to leads list after successful save
+        setTimeout(() => {
+          onSave(leadData);
+        }, 1000);
       } catch (error) {
         console.error('Error saving lead:', error);
         toast.error('Failed to save lead. Please try again.');

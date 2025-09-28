@@ -1,29 +1,36 @@
 import React, { useState } from 'react';
 import { Plus, Search, Download, FileText, DollarSign, Calendar, CheckCircle, Clock } from 'lucide-react';
+import { loadLeads } from '../../data/leads.mock';
 
 export const OrdersReceipts: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [leads] = useState(() => loadLeads());
 
-  const orders = [
-    {
-      id: '1',
-      orderNumber: 'ORD-2024-001',
-      customerName: 'TechCorp Solutions',
-      amount: 500000,
-      date: '2024-03-15',
-      status: 'completed',
-      receiptGenerated: true
-    },
-    {
-      id: '2',
-      orderNumber: 'ORD-2024-002',
-      customerName: 'Sunita Reddy',
-      amount: 250000,
-      date: '2024-03-14',
-      status: 'pending',
-      receiptGenerated: false
-    }
-  ];
+  // Generate orders from won leads
+  const orders = React.useMemo(() => {
+    const wonLeads = leads.filter(l => l.status === 'won');
+    return wonLeads.map((lead, index) => ({
+      id: lead.id,
+      orderNumber: `ORD-2024-${String(index + 1).padStart(3, '0')}`,
+      customerName: lead.name,
+      customerCompany: lead.company,
+      customerEmail: lead.email,
+      customerPhone: lead.phone,
+      amount: lead.value,
+      date: lead.updatedAt.split('T')[0],
+      status: 'completed' as const,
+      receiptGenerated: true,
+      assignedTo: lead.assignedTo,
+      source: lead.source,
+      tags: lead.tags
+    }));
+  }, [leads]);
+
+  const filteredOrders = orders.filter(order =>
+    order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (order.customerCompany && order.customerCompany.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -73,28 +80,45 @@ export const OrdersReceipts: React.FC = () => {
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Order</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Customer</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Contact</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Amount</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Agent</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Receipt</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-yellow-400/20">
-                {orders.map((order) => (
+                {filteredOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-slate-700/20 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <p className="text-sm font-medium text-slate-50">{order.orderNumber}</p>
+                        <p className="text-xs text-slate-400">Source: {order.source}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <p className="text-sm text-slate-50">{order.customerName}</p>
+                      <div>
+                        <p className="text-sm font-medium text-slate-50">{order.customerName}</p>
+                        {order.customerCompany && (
+                          <p className="text-xs text-slate-400">{order.customerCompany}</p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <p className="text-sm text-slate-50">{order.customerEmail}</p>
+                        <p className="text-xs text-slate-400">{order.customerPhone}</p>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <p className="text-sm font-semibold text-green-400">{formatCurrency(order.amount)}</p>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <p className="text-sm text-slate-50">{new Date(order.date).toLocaleDateString()}</p>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <p className="text-sm text-slate-50">{order.assignedTo}</p>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -119,6 +143,46 @@ export const OrdersReceipts: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Total Orders</p>
+                <p className="text-2xl font-bold text-slate-50">{orders.length}</p>
+              </div>
+              <FileText className="h-8 w-8 text-blue-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Total Value</p>
+                <p className="text-2xl font-bold text-green-400">{formatCurrency(orders.reduce((sum, o) => sum + o.amount, 0))}</p>
+              </div>
+              <DollarSign className="h-8 w-8 text-green-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Avg Order Size</p>
+                <p className="text-2xl font-bold text-purple-400">{formatCurrency(orders.length > 0 ? orders.reduce((sum, o) => sum + o.amount, 0) / orders.length : 0)}</p>
+              </div>
+              <Target className="h-8 w-8 text-purple-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">This Month</p>
+                <p className="text-2xl font-bold text-orange-400">{orders.filter(o => new Date(o.date) > new Date(Date.now() - 30*24*60*60*1000)).length}</p>
+              </div>
+              <Calendar className="h-8 w-8 text-orange-400" />
+            </div>
           </div>
         </div>
       </div>

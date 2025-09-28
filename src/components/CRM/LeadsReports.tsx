@@ -1,15 +1,35 @@
 import React, { useState } from 'react';
 import { BarChart3, Download, TrendingUp, Users, DollarSign, Target, Award, Calendar } from 'lucide-react';
+import { loadLeads } from '../../data/leads.mock';
 
 export const LeadsReports: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('current-month');
+  const [leads] = useState(() => loadLeads());
 
-  const reportStats = [
-    { label: 'Total Leads', value: '156', icon: Users, color: 'text-blue-400' },
-    { label: 'Conversion Rate', value: '18.5%', icon: TrendingUp, color: 'text-green-400' },
-    { label: 'Pipeline Value', value: '₹45.2L', icon: DollarSign, color: 'text-purple-400' },
-    { label: 'Avg Deal Size', value: '₹2.9L', icon: Target, color: 'text-orange-400' }
-  ];
+  // Calculate real report stats from leads data
+  const reportStats = React.useMemo(() => {
+    const wonLeads = leads.filter(l => l.status === 'won');
+    const lostLeads = leads.filter(l => l.status === 'lost');
+    const totalAttempts = wonLeads.length + lostLeads.length;
+    const conversionRate = totalAttempts > 0 ? (wonLeads.length / totalAttempts * 100).toFixed(1) : '0';
+    const pipelineValue = leads.filter(l => !['won', 'lost'].includes(l.status)).reduce((sum, l) => sum + l.value, 0);
+    const avgDealSize = wonLeads.length > 0 ? wonLeads.reduce((sum, l) => sum + l.value, 0) / wonLeads.length : 0;
+
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 1,
+      }).format(amount);
+    };
+
+    return [
+      { label: 'Total Leads', value: leads.length.toString(), icon: Users, color: 'text-blue-400' },
+      { label: 'Conversion Rate', value: `${conversionRate}%`, icon: TrendingUp, color: 'text-green-400' },
+      { label: 'Pipeline Value', value: formatCurrency(pipelineValue), icon: DollarSign, color: 'text-purple-400' },
+      { label: 'Avg Deal Size', value: formatCurrency(avgDealSize), icon: Target, color: 'text-orange-400' }
+    ];
+  }, [leads]);
 
   return (
     <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
@@ -62,24 +82,56 @@ export const LeadsReports: React.FC = () => {
         {/* Chart Placeholders */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
-            <h3 className="text-lg font-semibold text-slate-50 mb-4">Sales Performance</h3>
+            <h3 className="text-lg font-semibold text-slate-50 mb-4 flex items-center">
+              <BarChart3 className="h-5 w-5 mr-2" />
+              Lead Status Distribution
+            </h3>
             <div className="h-64 flex items-center justify-center border-2 border-dashed border-yellow-400/30 rounded-xl">
               <div className="text-center">
                 <BarChart3 className="h-12 w-12 mx-auto text-slate-400 mb-2" />
-                <p className="text-slate-400">Performance Chart</p>
+                <p className="text-slate-400">Status Distribution Chart</p>
                 <p className="text-slate-500 text-sm">Interactive chart coming soon</p>
               </div>
             </div>
           </div>
 
           <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
-            <h3 className="text-lg font-semibold text-slate-50 mb-4">Lead Sources</h3>
+            <h3 className="text-lg font-semibold text-slate-50 mb-4 flex items-center">
+              <BarChart3 className="h-5 w-5 mr-2" />
+              Lead Sources Analysis
+            </h3>
             <div className="h-64 flex items-center justify-center border-2 border-dashed border-yellow-400/30 rounded-xl">
               <div className="text-center">
                 <BarChart3 className="h-12 w-12 mx-auto text-slate-400 mb-2" />
                 <p className="text-slate-400">Sources Chart</p>
                 <p className="text-slate-500 text-sm">Interactive chart coming soon</p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Lead Performance Summary */}
+        <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
+          <h3 className="text-lg font-semibold text-slate-50 mb-4 flex items-center">
+            <Award className="h-5 w-5 mr-2" />
+            Lead Performance Summary
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="text-center p-4 bg-blue-500/10 rounded-xl border border-blue-500/30">
+              <p className="text-2xl font-bold text-blue-400">{leads.filter(l => l.status === 'new').length}</p>
+              <p className="text-sm text-blue-300">New Leads</p>
+            </div>
+            <div className="text-center p-4 bg-yellow-500/10 rounded-xl border border-yellow-500/30">
+              <p className="text-2xl font-bold text-yellow-400">{leads.filter(l => ['contacted', 'qualified'].includes(l.status)).length}</p>
+              <p className="text-sm text-yellow-300">In Progress</p>
+            </div>
+            <div className="text-center p-4 bg-green-500/10 rounded-xl border border-green-500/30">
+              <p className="text-2xl font-bold text-green-400">{leads.filter(l => l.status === 'won').length}</p>
+              <p className="text-sm text-green-300">Won Deals</p>
+            </div>
+            <div className="text-center p-4 bg-red-500/10 rounded-xl border border-red-500/30">
+              <p className="text-2xl font-bold text-red-400">{leads.filter(l => l.status === 'lost').length}</p>
+              <p className="text-sm text-red-300">Lost Deals</p>
             </div>
           </div>
         </div>
