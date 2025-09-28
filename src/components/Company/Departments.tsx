@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Plus, Search, Edit3, Trash2, Building2, UserCheck, Crown } from 'lucide-react';
+import { Users, Plus, Search, CreditCard as Edit3, Trash2, Building2, UserCheck, Crown } from 'lucide-react';
 
 interface Department {
   id: string;

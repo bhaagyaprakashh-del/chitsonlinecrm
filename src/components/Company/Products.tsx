@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, Plus, Search, Edit3, Trash2, DollarSign, Calendar, Users, TrendingUp } from 'lucide-react';
+import { Package, Plus, Search, CreditCard as Edit3, Trash2, DollarSign, Calendar, Users, TrendingUp } from 'lucide-react';
 
 interface Product {
   id: string;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, MapPin, Phone, Mail, Globe, Camera, Save, Edit3 } from 'lucide-react';
+import { Building2, MapPin, Phone, Mail, Globe, Camera, Save, CreditCard as Edit3 } from 'lucide-react';
 
 export const CompanyProfile: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);

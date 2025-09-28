@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Plus, Search, Edit3, Trash2, Download, Eye, Upload, Folder, File } from 'lucide-react';
+import { FileText, Plus, Search, CreditCard as Edit3, Trash2, Download, Eye, Upload, Folder, File } from 'lucide-react';
 
 interface Template {
   id: string;

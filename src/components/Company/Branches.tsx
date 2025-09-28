@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Plus, Search, Filter, Building2, Phone, Mail, Users, Edit3, Trash2 } from 'lucide-react';
+import { MapPin, Plus, Search, Filter, Building2, Phone, Mail, Users, CreditCard as Edit3, Trash2 } from 'lucide-react';
 
 interface Branch {
   id: string;

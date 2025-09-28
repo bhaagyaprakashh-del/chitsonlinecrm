@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Plus, Search, Edit3, Trash2, Users, Key, Lock, Check, X } from 'lucide-react';
+import { Shield, Plus, Search, CreditCard as Edit3, Trash2, Users, Key, Lock, Check, X } from 'lucide-react';
 
 interface Permission {
   id: string;
