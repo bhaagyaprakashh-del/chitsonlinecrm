@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Eye, Edit, CheckSquare, Users, Calendar, Target } from 'lucide-react';
+import { Plus, Search, Filter, Eye, CreditCard as Edit, CheckSquare, Users, Calendar, Target } from 'lucide-react';
 
 export const TaskBoard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');

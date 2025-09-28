@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Eye, Edit, MessageSquare, Users, Calendar, Clock } from 'lucide-react';
+import { Plus, Search, Filter, Eye, CreditCard as Edit, MessageSquare, Users, Calendar, Clock } from 'lucide-react';
 
 export const TicketsInbox: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');

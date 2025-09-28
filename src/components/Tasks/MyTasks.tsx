@@ -1,36 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  Eye,
-  CheckSquare,
-  Clock,
-  Users,
-  Calendar,
-  Flag,
-  Star,
-  Target,
-  Award,
-  TrendingUp,
-  Filter,
-  Download,
-  Settings,
-  MoreVertical,
-  User,
-  Building,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Activity,
-  MessageSquare,
-  FileText,
-  Phone,
-  Mail,
-  Video,
-  Paperclip
-} from 'lucide-react';
+import { Plus, Search, CreditCard as Edit, Trash2, Eye, CheckSquare, Clock, Users, Calendar, Flag, Star, Target, Award, TrendingUp, Filter, Download, Settings, MoreVertical, User, Building, AlertTriangle, CheckCircle, XCircle, Activity, MessageSquare, FileText, Phone, Mail, Video, Paperclip } from 'lucide-react';
 import { Task } from '../../types/tasks';
 
 const sampleTasks: Task[] = [

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, Eye, Edit, Shield, Clock, AlertTriangle, Target } from 'lucide-react';
+import { Plus, Search, Filter, Eye, CreditCard as Edit, Shield, Clock, AlertTriangle, Target } from 'lucide-react';
 
 export const SLAPriority: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
