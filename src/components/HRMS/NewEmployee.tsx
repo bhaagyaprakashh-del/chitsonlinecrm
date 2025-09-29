@@ -210,9 +210,16 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
       
       // Get existing employees and add new one
       const existingEmployees = getEmployees();
+      console.log('NewEmployee: Existing employees before addition:', existingEmployees.length);
       const updatedEmployees = [...existingEmployees, employeeData];
       console.log('NewEmployee: Total employees after addition:', updatedEmployees.length);
+      console.log('NewEmployee: New employee being added:', `${employeeData.firstName} ${employeeData.lastName}`);
       saveEmployees(updatedEmployees);
+      
+      // Verify the save worked
+      const verifyEmployees = getEmployees();
+      console.log('NewEmployee: Verification - employees in storage:', verifyEmployees.length);
+      console.log('NewEmployee: Verification - employee names:', verifyEmployees.map(e => `${e.firstName} ${e.lastName}`));
       
       // Create user account if requested
       const userData = {

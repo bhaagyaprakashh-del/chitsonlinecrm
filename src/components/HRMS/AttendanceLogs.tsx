@@ -277,34 +277,50 @@ const AttendanceCard: React.FC<{ record: AttendanceRecord }> = React.memo(({ rec
 });
 
 export const AttendanceLogs: React.FC = () => {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [attendanceRecords] = useState<AttendanceRecord[]>(sampleAttendanceRecords);
+  const [employees, setEmployees] = useState<Employee[]>(() => {
+    initializeEmployeesData();
+    return getEmployees();
+  });
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterApproval, setFilterApproval] = useState<string>('all');
   const [filterBranch, setFilterBranch] = useState<string>('all');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // Load employees data
+  // Load employees and generate attendance records
   React.useEffect(() => {
-    initializeEmployeesData();
     const loadedEmployees = getEmployees();
+    console.log('AttendanceLogs: Loaded employees:', loadedEmployees.length);
     setEmployees(loadedEmployees);
+    
+    // Generate attendance records for all employees
+    const generatedRecords = generateAttendanceRecords(loadedEmployees);
+    console.log('AttendanceLogs: Generated attendance records:', generatedRecords.length);
+    setAttendanceRecords(generatedRecords);
   }, []);
 
   // Listen for employee updates
   React.useEffect(() => {
     const handleEmployeeUpdate = () => {
+      console.log('AttendanceLogs: Employee data updated, refreshing...');
       const updatedEmployees = getEmployees();
+      console.log('AttendanceLogs: Updated employees count:', updatedEmployees.length);
       setEmployees(updatedEmployees);
+      
+      // Regenerate attendance records with updated employee data
+      const updatedRecords = generateAttendanceRecords(updatedEmployees);
+      setAttendanceRecords(updatedRecords);
     };
 
     window.addEventListener('employeesUpdated', handleEmployeeUpdate);
     window.addEventListener('employeeDataChanged', handleEmployeeUpdate);
+    window.addEventListener('storage', handleEmployeeUpdate);
     
     return () => {
       window.removeEventListener('employeesUpdated', handleEmployeeUpdate);
       window.removeEventListener('employeeDataChanged', handleEmployeeUpdate);
+      window.removeEventListener('storage', handleEmployeeUpdate);
     };
   }, []);
 
