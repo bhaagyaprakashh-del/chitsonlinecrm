@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Save, Upload, X, Plus, User, Briefcase, Shield, Phone, MapPin } from 'lucide-react';
 import { Employee } from '../../types/hrms';
+import { getBranches, initializeBranchesData } from '../../data/branches.mock';
+import { mockUsers, UserCategory } from '../../data/users.mock';
+import toast from 'react-hot-toast';
 
 interface NewEmployeeProps {
   onBack: () => void;
@@ -66,6 +69,18 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [branches] = useState(() => {
+    initializeBranchesData();
+    return getBranches().filter(b => b.status === 'active');
+  });
+  const [createUserAccount, setCreateUserAccount] = useState(false);
+  const [userAccountData, setUserAccountData] = useState({
+    username: '',
+    password: '',
+    confirmPassword: '',
+    role: 'Employee' as UserCategory,
+    permissions: [] as string[]
+  });
 
   const steps = [
     { id: 1, name: 'Personal Info', icon: User },
@@ -79,16 +94,18 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
     'Human Resources', 'Information Technology', 'Customer Service'
   ];
 
-  const branches = [
-    'Bangalore Main', 'Bangalore South', 'Bangalore East', 'Bangalore West', 'Bangalore Central',
-    'Chennai Branch', 'Hyderabad Branch', 'Mumbai Branch'
-  ];
-
   const managers = [
     'Prakashh Admin', 'Rajesh Kumar', 'Priya Sharma', 'Amit Patel', 'Sunita Reddy'
   ];
 
-  const handleInputChange = (field: string, value: any) => {
+  const rolePermissions = {
+    'Admin': ['dashboard.view', 'employees.view', 'employees.create', 'employees.edit', 'reports.view', 'settings.view'],
+    'Employee': ['dashboard.view', 'employees.view', 'reports.view'],
+    'Agents': ['dashboard.view', 'leads.view', 'leads.create'],
+    'Subscribers': ['dashboard.view', 'profile.view']
+  };
+
+  const handleInputChange = (field: keyof Employee, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -109,6 +126,26 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
     }));
   };
 
+  const handleUserAccountChange = (field: string, value: any) => {
+    setUserAccountData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const generateUsername = () => {
+    if (formData.firstName && formData.lastName) {
+      const username = `${formData.firstName.toLowerCase()}.${formData.lastName.toLowerCase()}`;
+      setUserAccountData(prev => ({ ...prev, username }));
+    }
+  };
+
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$';
+    let password = '';
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setUserAccountData(prev => ({ ...prev, password, confirmPassword: password }));
+  };
+
   const validateStep = (step: number) => {
     const newErrors: Record<string, string> = {};
 
@@ -127,6 +164,15 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
         if (!formData.joiningDate) newErrors.joiningDate = 'Joining date is required';
         break;
       case 3:
+        if (createUserAccount) {
+          if (!userAccountData.username.trim()) newErrors.username = 'Username is required';
+          if (!userAccountData.password.trim()) newErrors.password = 'Password is required';
+          if (userAccountData.password !== userAccountData.confirmPassword) {
+            newErrors.confirmPassword = 'Passwords do not match';
+          }
+        }
+        break;
+      case 4:
         if (!formData.basicSalary || formData.basicSalary <= 0) newErrors.basicSalary = 'Basic salary is required';
         break;
     }
@@ -147,14 +193,55 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
 
   const handleSubmit = () => {
     if (validateStep(currentStep)) {
+      // Save employee data to localStorage
       const employeeData = {
         ...formData,
         employeeId: `EMP${String(Date.now()).slice(-3)}`,
+        branchId: branches.find(b => b.name === formData.branch)?.id,
         createdAt: new Date().toISOString(),
         createdBy: 'hr@ramnirmalchits.com',
         updatedAt: new Date().toISOString(),
         updatedBy: 'hr@ramnirmalchits.com'
       };
+      
+      // Save to employees storage
+      const existingEmployees = JSON.parse(localStorage.getItem('employees_data') || '[]');
+      const updatedEmployees = [...existingEmployees, employeeData];
+      localStorage.setItem('employees_data', JSON.stringify(updatedEmployees));
+      
+      // Create user account if requested
+      if (createUserAccount) {
+        const userData = {
+          id: `user_${Date.now()}`,
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          phone: formData.phone,
+          category: userAccountData.role,
+          role: formData.designation,
+          status: 'Active',
+          department: formData.department,
+          branch: formData.branch,
+          joiningDate: formData.joiningDate,
+          lastLogin: null,
+          username: userAccountData.username,
+          permissions: rolePermissions[userAccountData.role] || [],
+          employeeId: employeeData.employeeId
+        };
+        
+        // Save to users storage
+        const existingUsers = JSON.parse(localStorage.getItem('users_data') || '[]');
+        const updatedUsers = [...existingUsers, userData];
+        localStorage.setItem('users_data', JSON.stringify(updatedUsers));
+        
+        toast.success(`Employee and user account created successfully!`);
+      } else {
+        toast.success(`Employee ${employeeData.firstName} ${employeeData.lastName} created successfully!`);
+      }
+      
+      // Trigger storage update events
+      window.dispatchEvent(new CustomEvent('employeesUpdated'));
+      window.dispatchEvent(new CustomEvent('usersUpdated'));
+      
       onSave(employeeData);
     }
   };
@@ -307,10 +394,27 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
                 >
                   <option value="">Select Branch</option>
                   {branches.map(branch => (
-                    <option key={branch} value={branch}>{branch}</option>
+                    <option key={branch.id} value={branch.name}>
+                      {branch.name} - {branch.city}
+                    </option>
                   ))}
                 </select>
                 {errors.branch && <p className="mt-1 text-sm text-red-400">{errors.branch}</p>}
+                {formData.branch && (
+                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+                    <p className="text-blue-800">
+                      Selected: <span className="font-semibold">{formData.branch}</span>
+                    </p>
+                    {(() => {
+                      const selectedBranch = branches.find(b => b.name === formData.branch);
+                      return selectedBranch ? (
+                        <p className="text-blue-600 text-xs">
+                          Manager: {selectedBranch.manager} • {selectedBranch.employeeCount} employees
+                        </p>
+                      ) : null;
+                    })()}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -360,6 +464,113 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
       case 3:
         return (
           <div className="space-y-6">
+            {/* User Account Creation */}
+            <div className="bg-slate-700/30 rounded-xl p-6 border border-yellow-400/20">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-50">Create User Account</h3>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={createUserAccount}
+                    onChange={(e) => {
+                      setCreateUserAccount(e.target.checked);
+                      if (e.target.checked) {
+                        generateUsername();
+                        setUserAccountData(prev => ({ 
+                          ...prev, 
+                          permissions: rolePermissions[prev.role] || [] 
+                        }));
+                      }
+                    }}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-2"
+                  />
+                  <span className="text-slate-50">Create login account for this employee</span>
+                </label>
+              </div>
+              
+              {createUserAccount && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-50 mb-2">Username *</label>
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        value={userAccountData.username}
+                        onChange={(e) => handleUserAccountChange('username', e.target.value)}
+                        className={`flex-1 px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                          errors.username ? 'border-red-500' : 'border-yellow-400/30'
+                        }`}
+                        placeholder="username"
+                      />
+                      <button
+                        type="button"
+                        onClick={generateUsername}
+                        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                      >
+                        Generate
+                      </button>
+                    </div>
+                    {errors.username && <p className="mt-1 text-sm text-red-400">{errors.username}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-50 mb-2">User Role</label>
+                    <select
+                      value={userAccountData.role}
+                      onChange={(e) => {
+                        const role = e.target.value as UserCategory;
+                        handleUserAccountChange('role', role);
+                        handleUserAccountChange('permissions', rolePermissions[role] || []);
+                      }}
+                      className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+                    >
+                      <option value="Admin">Admin</option>
+                      <option value="Employee">Employee</option>
+                      <option value="Agents">Agent</option>
+                      <option value="Subscribers">Subscriber</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-50 mb-2">Password *</label>
+                    <div className="flex space-x-2">
+                      <input
+                        type="password"
+                        value={userAccountData.password}
+                        onChange={(e) => handleUserAccountChange('password', e.target.value)}
+                        className={`flex-1 px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                          errors.password ? 'border-red-500' : 'border-yellow-400/30'
+                        }`}
+                        placeholder="Password"
+                      />
+                      <button
+                        type="button"
+                        onClick={generatePassword}
+                        className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                      >
+                        Generate
+                      </button>
+                    </div>
+                    {errors.password && <p className="mt-1 text-sm text-red-400">{errors.password}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-50 mb-2">Confirm Password *</label>
+                    <input
+                      type="password"
+                      value={userAccountData.confirmPassword}
+                      onChange={(e) => handleUserAccountChange('confirmPassword', e.target.value)}
+                      className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                        errors.confirmPassword ? 'border-red-500' : 'border-yellow-400/30'
+                      }`}
+                      placeholder="Confirm password"
+                    />
+                    {errors.confirmPassword && <p className="mt-1 text-sm text-red-400">{errors.confirmPassword}</p>}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-50 mb-2">Basic Salary (₹) *</label>

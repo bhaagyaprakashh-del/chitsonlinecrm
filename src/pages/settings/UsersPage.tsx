@@ -267,7 +267,48 @@ const UsersPage: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<'All' | 'Active' | 'Inactive'>('All');
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddUser, setShowAddUser] = useState(false);
+  const [users, setUsers] = useState<UserRow[]>(() => {
+    // Load users from localStorage, fallback to mock data
+    const saved = localStorage.getItem('users_data');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) && parsed.length > 0 ? [...mockUsers, ...parsed] : mockUsers;
+      } catch (error) {
+        console.error('Failed to load users:', error);
+        return mockUsers;
+      }
+    }
+    return mockUsers;
+  });
   const itemsPerPage = 12;
+
+  // Listen for user updates
+  React.useEffect(() => {
+    const handleUserUpdate = () => {
+      console.log('UsersPage: Storage changed, reloading users...');
+      const saved = localStorage.getItem('users_data');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            setUsers([...mockUsers, ...parsed]);
+            console.log('UsersPage: Updated users count:', mockUsers.length + parsed.length);
+          }
+        } catch (error) {
+          console.error('Failed to reload users:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleUserUpdate);
+    window.addEventListener('usersUpdated', handleUserUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleUserUpdate);
+      window.removeEventListener('usersUpdated', handleUserUpdate);
+    };
+  }, []);
 
   const categories: Array<{ id: UserCategory | 'All'; name: string; icon: React.ComponentType<any> }> = [
     { id: 'All', name: 'All Users', icon: Users },
@@ -278,11 +319,11 @@ const UsersPage: React.FC = () => {
   ];
 
   const filteredUsers = useMemo(() => {
-    let users = selectedCategory === 'All' ? mockUsers : mockUsers.filter(u => u.category === selectedCategory);
+    let filteredByCategory = selectedCategory === 'All' ? users : users.filter(u => u.category === selectedCategory);
     
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
-      users = users.filter(user => 
+      filteredByCategory = filteredByCategory.filter(user => 
         user.name.toLowerCase().includes(searchLower) ||
         user.email?.toLowerCase().includes(searchLower) ||
         user.phone?.includes(searchTerm) ||
@@ -291,11 +332,11 @@ const UsersPage: React.FC = () => {
     }
 
     if (filterStatus !== 'All') {
-      users = users.filter(user => user.status === filterStatus);
+      filteredByCategory = filteredByCategory.filter(user => user.status === filterStatus);
     }
 
-    return users;
-  }, [selectedCategory, searchTerm, filterStatus]);
+    return filteredByCategory;
+  }, [users, selectedCategory, searchTerm, filterStatus]);
 
   const paginatedUsers = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -305,14 +346,14 @@ const UsersPage: React.FC = () => {
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
 
   const stats = useMemo(() => ({
-    total: mockUsers.length,
-    active: mockUsers.filter(u => u.status === 'Active').length,
-    inactive: mockUsers.filter(u => u.status === 'Inactive').length,
-    admin: mockUsers.filter(u => u.category === 'Admin').length,
-    employees: mockUsers.filter(u => u.category === 'Employees').length,
-    agents: mockUsers.filter(u => u.category === 'Agents').length,
-    subscribers: mockUsers.filter(u => u.category === 'Subscribers').length
-  }), []);
+    total: users.length,
+    active: users.filter(u => u.status === 'Active').length,
+    inactive: users.filter(u => u.status === 'Inactive').length,
+    admin: users.filter(u => u.category === 'Admin').length,
+    employees: users.filter(u => u.category === 'Employees').length,
+    agents: users.filter(u => u.category === 'Agents').length,
+    subscribers: users.filter(u => u.category === 'Subscribers').length
+  }), [users]);
 
   const handleAddUser = () => {
     setShowAddUser(true);

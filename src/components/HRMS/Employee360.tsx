@@ -91,8 +91,48 @@ const sampleEmployee: Employee = {
 };
 
 export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) => {
-  const [employee] = useState<Employee>(sampleEmployee);
+  const [employee, setEmployee] = useState<Employee>(() => {
+    // Load specific employee from localStorage
+    const saved = localStorage.getItem('employees_data');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const foundEmployee = parsed.find((emp: Employee) => emp.id === employeeId || emp.employeeId === employeeId);
+        return foundEmployee || sampleEmployee;
+      } catch (error) {
+        console.error('Failed to load employee:', error);
+        return sampleEmployee;
+      }
+    }
+    return sampleEmployee;
+  });
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Listen for employee updates
+  React.useEffect(() => {
+    const handleEmployeeUpdate = () => {
+      const saved = localStorage.getItem('employees_data');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          const foundEmployee = parsed.find((emp: Employee) => emp.id === employeeId || emp.employeeId === employeeId);
+          if (foundEmployee) {
+            setEmployee(foundEmployee);
+          }
+        } catch (error) {
+          console.error('Failed to reload employee:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleEmployeeUpdate);
+    window.addEventListener('employeesUpdated', handleEmployeeUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleEmployeeUpdate);
+      window.removeEventListener('employeesUpdated', handleEmployeeUpdate);
+    };
+  }, [employeeId]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {

@@ -328,11 +328,51 @@ const EmployeeCard: React.FC<{ employee: Employee }> = React.memo(({ employee })
 });
 
 export const EmployeeDirectory: React.FC = () => {
-  const [employees] = useState<Employee[]>(sampleEmployees);
+  const [employees, setEmployees] = useState<Employee[]>(() => {
+    // Load employees from localStorage, fallback to sample data
+    const saved = localStorage.getItem('employees_data');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) && parsed.length > 0 ? parsed : sampleEmployees;
+      } catch (error) {
+        console.error('Failed to load employees:', error);
+        return sampleEmployees;
+      }
+    }
+    return sampleEmployees;
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
   const [filterEmploymentType, setFilterEmploymentType] = useState<string>('all');
+
+  // Listen for employee updates
+  React.useEffect(() => {
+    const handleEmployeeUpdate = () => {
+      console.log('EmployeeDirectory: Storage changed, reloading employees...');
+      const saved = localStorage.getItem('employees_data');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            setEmployees(parsed.length > 0 ? parsed : sampleEmployees);
+            console.log('EmployeeDirectory: Updated employees count:', parsed.length);
+          }
+        } catch (error) {
+          console.error('Failed to reload employees:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleEmployeeUpdate);
+    window.addEventListener('employeesUpdated', handleEmployeeUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleEmployeeUpdate);
+      window.removeEventListener('employeesUpdated', handleEmployeeUpdate);
+    };
+  }, []);
 
   const filteredEmployees = useMemo(() => employees.filter(employee => {
     const matchesSearch = employee.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
