@@ -383,7 +383,11 @@ export const saveEmployees = (employees: Employee[]) => {
 };
 
 export const initializeEmployeesData = () => {
-  console.log('getEmployees: Loading employees from localStorage...');
+  try {
+    const saved = localStorage.getItem('employees_data');
+    console.log('getEmployees: Loading employees from localStorage...');
+    if (saved && saved !== '[]') {
+      const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
         console.log('getEmployees: Found employees in localStorage:', parsed.length);
         console.log('getEmployees: Employee names from localStorage:', parsed.map(e => `${e.firstName} ${e.lastName}`));
@@ -392,6 +396,7 @@ export const initializeEmployeesData = () => {
         console.log('getEmployees: No valid employees in localStorage, using sample data');
         return sampleEmployees;
       }
+    }
     if (!saved || saved === '[]') {
       console.log('initializeEmployeesData: No data found, initializing with sample employees');
       localStorage.setItem('employees_data', JSON.stringify(sampleEmployees));
