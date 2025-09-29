@@ -464,14 +464,14 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
       case 3:
         return (
           <div className="space-y-6">
-            {/* User Account Creation - Now Required */}
+            {/* User Account Creation */}
             <div className="bg-slate-700/30 rounded-xl p-6 border border-yellow-400/20">
               <h3 className="text-lg font-semibold text-slate-50 mb-4 flex items-center">
                 <Key className="h-5 w-5 mr-2" />
-                User Account Credentials
+                User Account Credentials *
               </h3>
               <p className="text-slate-400 text-sm mb-6">
-                Create login credentials for this employee to access the system
+                Create login credentials for this employee to access the system (Required)
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -575,6 +575,9 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
               {/* Permissions Preview */}
               <div className="mt-4 p-4 bg-slate-800/50 rounded-lg border border-yellow-400/20">
                 <h4 className="text-sm font-medium text-slate-50 mb-2">Assigned Permissions</h4>
+                <p className="text-xs text-slate-400 mb-3">
+                  The following permissions will be automatically assigned based on the selected role:
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {rolePermissions[userAccountData.role]?.map((permission, index) => (
                     <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 border border-blue-200">
@@ -838,7 +841,7 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
               className="inline-flex items-center px-6 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 transition-all"
             >
               <Save className="h-4 w-4 mr-2" />
-              Create Employee & User
+              Create Employee & User Account
             </button>
           ) : (
             <button

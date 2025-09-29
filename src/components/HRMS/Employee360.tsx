@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarSign, User, Shield, FileText, Activity } from 'lucide-react';
 import { Employee } from '../../types/hrms';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 interface Employee360Props {
   employeeId: string;
@@ -91,6 +93,10 @@ const sampleEmployee: Employee = {
 };
 
 export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const actualEmployeeId = searchParams.get('id') || employeeId;
+  
   const [employee, setEmployee] = useState<Employee>(() => {
     // Load specific employee from localStorage
     const saved = localStorage.getItem('employees_data');
@@ -98,7 +104,7 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
       try {
         const parsed = JSON.parse(saved);
         const allEmployees = [...sampleEmployees, ...parsed];
-        const foundEmployee = allEmployees.find((emp: Employee) => emp.id === employeeId || emp.employeeId === employeeId);
+        const foundEmployee = allEmployees.find((emp: Employee) => emp.id === actualEmployeeId || emp.employeeId === actualEmployeeId);
         return foundEmployee || sampleEmployee;
       } catch (error) {
         console.error('Failed to load employee:', error);
@@ -117,7 +123,7 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
         try {
           const parsed = JSON.parse(saved);
           const allEmployees = [...sampleEmployees, ...parsed];
-          const foundEmployee = allEmployees.find((emp: Employee) => emp.id === employeeId || emp.employeeId === employeeId);
+          const foundEmployee = allEmployees.find((emp: Employee) => emp.id === actualEmployeeId || emp.employeeId === actualEmployeeId);
           if (foundEmployee) {
             setEmployee(foundEmployee);
           }
@@ -134,7 +140,39 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
       window.removeEventListener('storage', handleEmployeeUpdate);
       window.removeEventListener('employeesUpdated', handleEmployeeUpdate);
     };
-  }, [employeeId]);
+  }, [actualEmployeeId]);
+
+  const handleEditEmployee = () => {
+    navigate(`/hrms-edit-employee?id=${employee.id}`);
+  };
+
+  const handleCallEmployee = () => {
+    if (navigator.userAgent.match(/Mobile|Android|iPhone|iPad/)) {
+      window.location.href = `tel:${employee.phone}`;
+    } else {
+      navigator.clipboard.writeText(employee.phone).then(() => {
+        toast.success(`Phone number ${employee.phone} copied to clipboard`);
+      }).catch(() => {
+        toast.error('Could not copy phone number');
+      });
+    }
+    toast.success(`Call initiated to ${employee.firstName} ${employee.lastName}`);
+  };
+
+  const handleEmailEmployee = () => {
+    const subject = encodeURIComponent(`Follow-up: ${employee.firstName} ${employee.lastName} - HR Communication`);
+    const body = encodeURIComponent(`Dear ${employee.firstName},
+
+I hope this email finds you well.
+
+Best regards,
+HR Team
+Ramnirmalchits Financial Services`);
+    
+    const mailtoLink = `mailto:${employee.email}?subject=${subject}&body=${body}`;
+    window.location.href = mailtoLink;
+    toast.success(`Email client opened for ${employee.firstName} ${employee.lastName}`);
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -308,15 +346,24 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
           </div>
         </div>
         <div className="flex space-x-3">
-          <button className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm">
+          <button 
+            onClick={handleCallEmployee}
+            className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm"
+          >
             <Phone className="h-4 w-4 mr-2" />
             Call
           </button>
-          <button className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm">
+          <button 
+            onClick={handleEmailEmployee}
+            className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm"
+          >
             <Mail className="h-4 w-4 mr-2" />
             Email
           </button>
-          <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-all">
+          <button 
+            onClick={handleEditEmployee}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-all"
+          >
             <Edit className="h-4 w-4 mr-2" />
             Edit Employee
           </button>

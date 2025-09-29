@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Search, CreditCard as Edit, Trash2, Eye, Mail, Phone, MapPin, Calendar, DollarSign, Users, Star, CheckCircle, XCircle, AlertTriangle, Clock, Award, Target, TrendingUp, Filter, Download, Upload, MoreVertical, User, Building, CreditCard, Shield, Flag, Zap, Crown, Briefcase } from 'lucide-react';
 import { Employee } from '../../types/hrms';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const sampleEmployees: Employee[] = [
   {
@@ -174,7 +176,13 @@ const sampleEmployees: Employee[] = [
   }
 ];
 
-const EmployeeCard: React.FC<{ employee: Employee }> = React.memo(({ employee }) => {
+const EmployeeCard: React.FC<{ 
+  employee: Employee; 
+  onView: (employee: Employee) => void;
+  onEdit: (employee: Employee) => void;
+  onDelete: (employee: Employee) => void;
+  onToggleStatus: (employee: Employee) => void;
+}> = React.memo(({ employee, onView, onEdit, onDelete, onToggleStatus }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800 border-green-200';
@@ -312,13 +320,36 @@ const EmployeeCard: React.FC<{ employee: Employee }> = React.memo(({ employee })
           <span>Joined {new Date(employee.joiningDate).toLocaleDateString()}</span>
         </div>
         <div className="flex space-x-2">
-          <button className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all">
+          <button 
+            onClick={() => onView(employee)}
+            className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all"
+            title="View Employee Details"
+          >
             <Eye className="h-4 w-4" />
           </button>
-          <button className="p-2 text-slate-400 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-all">
+          <button 
+            onClick={() => onEdit(employee)}
+            className="p-2 text-slate-400 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-all"
+            title="Edit Employee"
+          >
             <Edit className="h-4 w-4" />
           </button>
-          <button className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all">
+          <button 
+            onClick={() => onToggleStatus(employee)}
+            className={`p-2 text-slate-400 hover:bg-opacity-10 rounded-lg transition-all ${
+              employee.status === 'active' 
+                ? 'hover:text-yellow-400 hover:bg-yellow-500/10' 
+                : 'hover:text-green-400 hover:bg-green-500/10'
+            }`}
+            title={employee.status === 'active' ? 'Deactivate Employee' : 'Activate Employee'}
+          >
+            {employee.status === 'active' ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+          </button>
+          <button 
+            onClick={() => onDelete(employee)}
+            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+            title="Delete Employee"
+          >
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
@@ -328,6 +359,7 @@ const EmployeeCard: React.FC<{ employee: Employee }> = React.memo(({ employee })
 });
 
 export const EmployeeDirectory: React.FC = () => {
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState<Employee[]>(() => {
     // Load employees from localStorage, fallback to sample data
     const saved = localStorage.getItem('employees_data');
@@ -412,6 +444,87 @@ export const EmployeeDirectory: React.FC = () => {
     }).format(amount);
   };
 
+  const handleViewEmployee = (employee: Employee) => {
+    navigate(`/hrms-employee-360?id=${employee.id}`);
+  };
+
+  const handleEditEmployee = (employee: Employee) => {
+    toast.success(`Opening edit form for ${employee.firstName} ${employee.lastName}`);
+    // For now, we'll show a toast. In a real app, this would navigate to an edit page
+    toast.info('Edit functionality will open employee edit form');
+  };
+
+  const handleDeleteEmployee = (employee: Employee) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ${employee.firstName} ${employee.lastName}? This action cannot be undone.`
+    );
+    
+    if (confirmDelete) {
+      try {
+        // Remove from localStorage
+        const saved = localStorage.getItem('employees_data');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const updatedEmployees = parsed.filter((emp: Employee) => emp.id !== employee.id);
+          localStorage.setItem('employees_data', JSON.stringify(updatedEmployees));
+          
+          // Update local state
+          setEmployees(prev => prev.filter(emp => emp.id !== employee.id));
+          
+          // Trigger update events
+          window.dispatchEvent(new CustomEvent('employeesUpdated'));
+          
+          toast.success(`${employee.firstName} ${employee.lastName} deleted successfully`);
+        }
+      } catch (error) {
+        console.error('Error deleting employee:', error);
+        toast.error('Failed to delete employee. Please try again.');
+      }
+    }
+  };
+
+  const handleToggleStatus = (employee: Employee) => {
+    const newStatus = employee.status === 'active' ? 'inactive' : 'active';
+    const action = newStatus === 'active' ? 'activated' : 'deactivated';
+    
+    try {
+      // Update employee status
+      const updatedEmployee = {
+        ...employee,
+        status: newStatus,
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'current-user@ramnirmalchits.com'
+      };
+      
+      // Update in localStorage
+      const saved = localStorage.getItem('employees_data');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const updatedEmployees = parsed.map((emp: Employee) => 
+          emp.id === employee.id ? updatedEmployee : emp
+        );
+        localStorage.setItem('employees_data', JSON.stringify(updatedEmployees));
+      }
+      
+      // Update local state
+      setEmployees(prev => prev.map(emp => 
+        emp.id === employee.id ? updatedEmployee : emp
+      ));
+      
+      // Trigger update events
+      window.dispatchEvent(new CustomEvent('employeesUpdated'));
+      
+      toast.success(`${employee.firstName} ${employee.lastName} ${action} successfully`);
+    } catch (error) {
+      console.error('Error updating employee status:', error);
+      toast.error('Failed to update employee status. Please try again.');
+    }
+  };
+
+  const handleAddEmployee = () => {
+    navigate('/hrms-new-employee');
+  };
+
   return (
     <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
       {/* Header */}
@@ -431,7 +544,10 @@ export const EmployeeDirectory: React.FC = () => {
             <Download className="h-4 w-4 mr-2" />
             Export
           </button>
-          <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-all">
+          <button 
+            onClick={handleAddEmployee}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-all"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Employee
           </button>
@@ -579,7 +695,14 @@ export const EmployeeDirectory: React.FC = () => {
         {/* Employees Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredEmployees.map((employee) => (
-            <EmployeeCard key={employee.id} employee={employee} />
+            <EmployeeCard 
+              key={employee.id} 
+              employee={employee}
+              onView={handleViewEmployee}
+              onEdit={handleEditEmployee}
+              onDelete={handleDeleteEmployee}
+              onToggleStatus={handleToggleStatus}
+            />
           ))}
         </div>
 

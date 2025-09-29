@@ -359,7 +359,7 @@ export const routes: AppRoute[] = [
     path: "/hrms-employee-360", 
     key: "hrms.360", 
     title: "Employee 360", 
-    element: <Employee360 employeeId="1" onBack={() => window.history.back()} />, 
+    element: <Employee360 employeeId="" onBack={() => window.history.back()} />, 
     parent: "hrms" 
   },
   { 
