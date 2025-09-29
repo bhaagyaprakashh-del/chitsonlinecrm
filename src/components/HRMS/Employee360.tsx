@@ -1,7 +1,7 @@
 import { ArrowLeft, Edit, Save, X, Plus, User, CreditCard, Shield, Phone, MapPin, Mail, Building, Calendar, DollarSign, Users, Star, CheckCircle, XCircle, AlertTriangle, Clock, Award, Target, TrendingUp, Activity, Filter, Download, Upload, MoreVertical, Eye, Trash2, Key, Lock, EyeOff } from 'lucide-react';
 import { Employee } from '../../types/hrms';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, DollarSign, User, CreditCard, FileText, Clock, Award, Target, TrendingUp, Users, CheckCircle, AlertTriangle, Download, Upload, Star, Briefcase, Shield, Building, Activity, Eye, Send, MessageSquare, Save, X, Key, Lock, EyeOff, Search, Filter, MoreVertical, Trash2 } from 'lucide-react';
+import { Edit, Mail, Phone, MapPin, Calendar, DollarSign, User, CreditCard, FileText, Clock, Award, Target, TrendingUp, Users, CheckCircle, AlertTriangle, Download, Upload, Star, Briefcase, Shield, Building, Activity, Eye, Send, MessageSquare, Save, X, Key, Lock, EyeOff, Search, Filter, MoreVertical, Trash2, ArrowLeft } from 'lucide-react';
 import { getEmployees, saveEmployees, updateEmployee, deleteEmployee, initializeEmployeesData } from '../../data/employees.mock';
 import { getBranches } from '../../data/branches.mock';
 import { UserCategory } from '../../data/users.mock';
