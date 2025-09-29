@@ -779,13 +779,53 @@ const SubscriberTable: React.FC<{ subscribers: Subscriber[] }> = React.memo(({ s
 });
 
 export const AllSubscribers: React.FC = () => {
-  const [subscribers] = useState<Subscriber[]>(sampleSubscribers);
+  const [subscribers, setSubscribers] = useState<Subscriber[]>(() => {
+    // Load subscribers from localStorage, fallback to sample data
+    const saved = localStorage.getItem('subscribers_data');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) && parsed.length > 0 ? [...sampleSubscribers, ...parsed] : sampleSubscribers;
+      } catch (error) {
+        console.error('Failed to load subscribers:', error);
+        return sampleSubscribers;
+      }
+    }
+    return sampleSubscribers;
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterMembership, setFilterMembership] = useState<string>('all');
   const [filterTier, setFilterTier] = useState<string>('all');
   const [filterKYC, setFilterKYC] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+
+  // Listen for subscriber updates from conversions
+  React.useEffect(() => {
+    const handleSubscriberUpdate = () => {
+      console.log('Subscribers: Storage changed, reloading subscribers...');
+      const saved = localStorage.getItem('subscribers_data');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            setSubscribers([...sampleSubscribers, ...parsed]);
+            console.log('Subscribers: Updated subscribers count:', sampleSubscribers.length + parsed.length);
+          }
+        } catch (error) {
+          console.error('Failed to reload subscribers:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleSubscriberUpdate);
+    window.addEventListener('subscribersUpdated', handleSubscriberUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleSubscriberUpdate);
+      window.removeEventListener('subscribersUpdated', handleSubscriberUpdate);
+    };
+  }, []);
 
   const filteredSubscribers = useMemo(() => subscribers.filter(subscriber => {
     const matchesSearch = subscriber.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
