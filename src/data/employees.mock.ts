@@ -348,6 +348,7 @@ export const getEmployees = (): Employee[] => {
       return sampleEmployees;
     }
   }
+  console.log('getEmployees: No localStorage data, using sample employees');
   return sampleEmployees;
 };
 
@@ -369,17 +370,28 @@ export const getEmployeeById = (id: string): Employee | undefined => {
 
 export const saveEmployees = (employees: Employee[]) => {
   try {
-    // Save all employees to localStorage
+    console.log('saveEmployees: Saving employees to localStorage:', employees.length);
+    console.log('saveEmployees: Employee names being saved:', employees.map(e => `${e.firstName} ${e.lastName}`));
     localStorage.setItem('employees_data', JSON.stringify(employees));
+    console.log('saveEmployees: Successfully saved to localStorage');
     window.dispatchEvent(new CustomEvent('employeesUpdated'));
+    window.dispatchEvent(new CustomEvent('employeeDataChanged'));
+    console.log('saveEmployees: Events dispatched');
   } catch (error) {
     console.error('Failed to save employees:', error);
   }
 };
 
 export const initializeEmployeesData = () => {
-  try {
-    const saved = localStorage.getItem('employees_data');
+  console.log('getEmployees: Loading employees from localStorage...');
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        console.log('getEmployees: Found employees in localStorage:', parsed.length);
+        console.log('getEmployees: Employee names from localStorage:', parsed.map(e => `${e.firstName} ${e.lastName}`));
+        return parsed;
+      } else {
+        console.log('getEmployees: No valid employees in localStorage, using sample data');
+        return sampleEmployees;
+      }
     if (!saved) {
       // Initialize with sample employees if no data exists
       localStorage.setItem('employees_data', JSON.stringify(sampleEmployees));

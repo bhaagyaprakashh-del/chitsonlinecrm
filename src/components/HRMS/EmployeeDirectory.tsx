@@ -190,20 +190,17 @@ const EmployeeCard: React.FC<{
 
 export const EmployeeDirectory: React.FC = () => {
   const navigate = useNavigate();
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>(() => {
+    console.log('EmployeeDirectory: Initial load from localStorage...');
+    initializeEmployeesData();
+    const loadedEmployees = getEmployees();
+    console.log('EmployeeDirectory: Initial employees loaded:', loadedEmployees.length);
+    return loadedEmployees;
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
   const [filterEmploymentType, setFilterEmploymentType] = useState<string>('all');
-
-  // Load employees on component mount
-  React.useEffect(() => {
-    console.log('EmployeeDirectory: Loading employees data...');
-    initializeEmployeesData();
-    const loadedEmployees = getEmployees();
-    console.log('EmployeeDirectory: Loaded employees:', loadedEmployees.length);
-    setEmployees(loadedEmployees);
-  }, []);
 
   // Listen for employee updates
   React.useEffect(() => {
@@ -211,6 +208,7 @@ export const EmployeeDirectory: React.FC = () => {
       console.log('EmployeeDirectory: Storage changed, reloading employees...');
       const updatedEmployees = getEmployees();
       console.log('EmployeeDirectory: Updated employees count:', updatedEmployees.length);
+      console.log('EmployeeDirectory: Employee names:', updatedEmployees.map(e => `${e.firstName} ${e.lastName}`));
       setEmployees(updatedEmployees);
     };
 
@@ -221,17 +219,47 @@ export const EmployeeDirectory: React.FC = () => {
     const handleCustomUpdate = () => {
       console.log('EmployeeDirectory: Custom event triggered, reloading...');
       const updatedEmployees = getEmployees();
+      console.log('EmployeeDirectory: Custom update - employees count:', updatedEmployees.length);
+      console.log('EmployeeDirectory: Custom update - employee names:', updatedEmployees.map(e => `${e.firstName} ${e.lastName}`));
       setEmployees(updatedEmployees);
     };
     
     window.addEventListener('employeeDataChanged', handleCustomUpdate);
+    
+    // Force refresh on mount to catch any missed updates
+    const currentEmployees = getEmployees();
+    if (currentEmployees.length !== employees.length) {
+      console.log('EmployeeDirectory: Detected data mismatch, forcing refresh...');
+      setEmployees(currentEmployees);
+    }
     
     return () => {
       window.removeEventListener('storage', handleEmployeeUpdate);
       window.removeEventListener('employeesUpdated', handleEmployeeUpdate);
       window.removeEventListener('employeeDataChanged', handleCustomUpdate);
     };
-  }, []);
+  }, [employees.length]);
+
+  // Debug: Log current employees on every render
+  React.useEffect(() => {
+    console.log('EmployeeDirectory: Current employees in state:', employees.length);
+    console.log('EmployeeDirectory: Employee names in state:', employees.map(e => `${e.firstName} ${e.lastName}`));
+    
+    // Also check localStorage directly
+    const storageEmployees = getEmployees();
+    console.log('EmployeeDirectory: Employees in localStorage:', storageEmployees.length);
+    console.log('EmployeeDirectory: Employee names in localStorage:', storageEmployees.map(e => `${e.firstName} ${e.lastName}`));
+  });
+
+  // Force refresh button for debugging
+  const handleForceRefresh = () => {
+    console.log('EmployeeDirectory: Force refresh triggered...');
+    const freshEmployees = getEmployees();
+    console.log('EmployeeDirectory: Fresh employees loaded:', freshEmployees.length);
+    console.log('EmployeeDirectory: Fresh employee names:', freshEmployees.map(e => `${e.firstName} ${e.lastName}`));
+    setEmployees(freshEmployees);
+    toast.success(`Refreshed: ${freshEmployees.length} employees loaded`);
+  };
 
   const filteredEmployees = useMemo(() => employees.filter(employee => {
     const matchesSearch = employee.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -345,6 +373,12 @@ export const EmployeeDirectory: React.FC = () => {
           </p>
         </div>
         <div className="flex space-x-3">
+          <button 
+            onClick={handleForceRefresh}
+            className="inline-flex items-center px-4 py-2 border border-green-400/30 text-sm font-medium rounded-lg text-green-400 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm"
+          >
+            🔄 Force Refresh ({employees.length})
+          </button>
           <button className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm">
             <Upload className="h-4 w-4 mr-2" />
             Import Employees

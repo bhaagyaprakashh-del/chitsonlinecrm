@@ -196,7 +196,6 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
 
   const handleSubmit = () => {
     if (validateStep(currentStep)) {
-      // Save employee data to localStorage
       const employeeData = {
         ...formData,
         employeeId: `EMP${String(Date.now()).slice(-3)}`,
@@ -207,9 +206,12 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
         updatedBy: 'hr@ramnirmalchits.com'
       };
       
-      // Save to employees storage
-      const existingEmployees = JSON.parse(localStorage.getItem('employees_data') || '[]');
+      console.log('NewEmployee: Creating employee:', employeeData);
+      
+      // Get existing employees and add new one
+      const existingEmployees = getEmployees();
       const updatedEmployees = [...existingEmployees, employeeData];
+      console.log('NewEmployee: Total employees after addition:', updatedEmployees.length);
       saveEmployees(updatedEmployees);
       
       // Create user account if requested
@@ -231,17 +233,17 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
         employeeId: employeeData.employeeId
       };
       
-      // Save to users storage
+      console.log('NewEmployee: Creating user account:', userData);
+      
+      // Save to users storage  
       const existingUsers = JSON.parse(localStorage.getItem('users_data') || '[]');
       const updatedUsers = [...existingUsers, userData];
       localStorage.setItem('users_data', JSON.stringify(updatedUsers));
+      window.dispatchEvent(new CustomEvent('usersUpdated'));
       
       toast.success(`Employee and user account created successfully!`);
       
-      // Trigger storage update events
-      window.dispatchEvent(new CustomEvent('employeesUpdated'));
-      window.dispatchEvent(new CustomEvent('employeeDataChanged'));
-      window.dispatchEvent(new CustomEvent('usersUpdated'));
+      console.log('NewEmployee: All data saved, triggering navigation...');
       
       onSave(employeeData);
     }
