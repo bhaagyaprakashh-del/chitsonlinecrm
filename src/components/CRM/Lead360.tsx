@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarSign, User, Tag, Activity, FileText, Eye, Search, Filter, MoreVertical, Star, CheckCircle, XCircle, AlertTriangle, Clock, Target, TrendingUp } from 'lucide-react';
+import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarSign, User, Tag, Activity, FileText, Eye, Search, Filter, MoreVertical, Star, CheckCircle, XCircle, AlertTriangle, Clock, Target, TrendingUp, X, Save } from 'lucide-react';
 import { Lead } from '../../types/crm';
 import { loadLeads, updateLead } from '../../data/leads.mock';
 import toast from 'react-hot-toast';
