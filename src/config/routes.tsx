@@ -71,6 +71,7 @@ const AuditLogs = React.lazy(() => import('../components/Company/AuditLogs').the
 const LegacyMembers = React.lazy(() => import('../components/Members').then(module => ({ default: module.Members })));
 const LegacySchemes = React.lazy(() => import('../components/Schemes').then(module => ({ default: module.Schemes })));
 const LegacyPayments = React.lazy(() => import('../components/Payments').then(module => ({ default: module.Payments })));
+const EmployeeKPILazy = React.lazy(() => import('../components/HRMS/EmployeeKPI'));
 
 // Stub components for missing pages
 const PlaceholderPage: React.FC<{ title: string; description: string }> = ({ title, description }) => (
@@ -387,7 +388,7 @@ export const routes: AppRoute[] = [
     path: "/hrms-kpi", 
     key: "hrms.kpi", 
     title: "Employee KPI", 
-    element: React.lazy(() => import('../components/HRMS/EmployeeKPI').then(module => ({ default: module.EmployeeKPIComponent }))), 
+    element: <React.Suspense fallback={<div className="flex items-center justify-center h-96"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div></div>}><EmployeeKPILazy /></React.Suspense>, 
     parent: "hrms" 
   },
 

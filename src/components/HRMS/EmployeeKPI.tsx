@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Search, CreditCard as Edit, Trash2, Eye, Target, TrendingUp, DollarSign, Users, CheckSquare, Calendar, Award, AlertTriangle, Star, Activity, BarChart3, PieChart, Filter, Download, Upload, Settings, MoreVertical, User, Building, Clock, CheckCircle, XCircle, Flag, Zap, Crown, Save, X, RefreshCw } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, Target, TrendingUp, DollarSign, Users, CheckSquare, Calendar, Award, AlertTriangle, Star, Activity, BarChart3, PieChart, Filter, Download, Upload, Settings, MoreVertical, User, Building, Clock, CheckCircle, XCircle, Flag, Zap, Crown, Save, X, RefreshCw } from 'lucide-react';
 import { EmployeeKPI, KPITarget, KPIAchievement } from '../../types/kpi';
 import { getEmployeeKPIs, saveEmployeeKPIs, updateKPIAchievement, initializeKPIData } from '../../data/kpi.mock';
 import { getEmployees, initializeEmployeesData } from '../../data/employees.mock';
@@ -642,7 +642,7 @@ const KPICard: React.FC<{
   );
 });
 
-export const EmployeeKPIComponent: React.FC = () => {
+const EmployeeKPIComponent: React.FC = () => {
   const [kpis, setKpis] = useState<EmployeeKPI[]>(() => {
     initializeKPIData();
     return getEmployeeKPIs();
@@ -788,7 +788,7 @@ export const EmployeeKPIComponent: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-50">Employee KPI Dashboard</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Manage employee targets, track performance, and calculate incentives
+            Manage employee targets, track performance, and calculate incentives with payroll integration
           </p>
         </div>
         <div className="flex space-x-3">
@@ -951,7 +951,7 @@ export const EmployeeKPIComponent: React.FC = () => {
               <option value="all">All Performance</option>
               <option value="high">High (80%+)</option>
               <option value="medium">Medium (50-79%)</option>
-              <option value="low">Low (&lt;50%)</option>
+              <option value="low">Low (<50%)</option>
             </select>
             <div className="text-sm text-slate-400">
               Showing: <span className="font-semibold text-slate-50">{filteredKPIs.length}</span> KPIs
@@ -1010,7 +1010,7 @@ export const EmployeeKPIComponent: React.FC = () => {
               </div>
               <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/30">
                 <p className="text-2xl font-bold text-red-400">{stats.lowPerformers}</p>
-                <p className="text-xs text-red-300">Low (&lt;50%)</p>
+                <p className="text-xs text-red-300">Low (<50%)</p>
               </div>
             </div>
           </div>
@@ -1073,3 +1073,5 @@ export const EmployeeKPIComponent: React.FC = () => {
     </div>
   );
 };
+
+export default EmployeeKPIComponent;
