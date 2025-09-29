@@ -1,153 +1,58 @@
 import React, { useState } from 'react';
-import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarSign, User, Shield, FileText, Activity } from 'lucide-react';
+import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarSign, User, Shield, FileText, Activity, Search, Save, X, Eye, Trash2 } from 'lucide-react';
 import { Employee } from '../../types/hrms';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { sampleEmployees } from '../../data/employees.mock';
+import { getEmployees, saveEmployees, getEmployeeById } from '../../data/employees.mock';
+import { getBranches } from '../../data/branches.mock';
 
 interface Employee360Props {
   employeeId: string;
   onBack: () => void;
 }
 
-const sampleEmployee: Employee = {
-  id: '1',
-  employeeId: 'EMP001',
-  firstName: 'Priya',
-  lastName: 'Sharma',
-  email: 'priya.sharma@ramnirmalchits.com',
-  phone: '+91 98765 43215',
-  alternatePhone: '+91 98765 43216',
-  dateOfBirth: '1990-05-15',
-  gender: 'female',
-  maritalStatus: 'single',
-  bloodGroup: 'O+',
-  address: '123 MG Road, Bangalore',
-  city: 'Bangalore',
-  state: 'Karnataka',
-  country: 'India',
-  postalCode: '560001',
-  designation: 'Senior Sales Executive',
-  department: 'Sales & Marketing',
-  branch: 'Bangalore Main',
-  joiningDate: '2021-06-01',
-  confirmationDate: '2021-12-01',
-  probationPeriod: 6,
-  employmentType: 'permanent',
-  workLocation: 'office',
-  reportingManager: 'Rajesh Kumar',
-  teamMembers: [],
-  basicSalary: 75000,
-  allowances: {
-    hra: 22500,
-    transport: 5000,
-    medical: 2500,
-    special: 5000
-  },
-  deductions: {
-    pf: 9000,
-    esi: 562,
-    tax: 8500,
-    other: 0
-  },
-  bankAccount: {
-    accountNumber: '1234567890',
-    bankName: 'HDFC Bank',
-    ifscCode: 'HDFC0001234',
-    accountHolderName: 'Priya Sharma'
-  },
-  documents: {
-    resume: '/documents/priya-resume.pdf',
-    idProof: '/documents/priya-aadhaar.pdf',
-    addressProof: '/documents/priya-utility.pdf',
-    educationCertificates: ['/documents/priya-degree.pdf'],
-    photo: '/documents/priya-photo.jpg'
-  },
-  skills: ['Sales', 'Customer Relations', 'Lead Generation', 'CRM'],
-  qualifications: [
-    {
-      degree: 'MBA Marketing',
-      institution: 'Bangalore University',
-      year: '2020',
-      percentage: 85
-    }
-  ],
-  experience: [
-    {
-      company: 'Previous Sales Corp',
-      designation: 'Sales Executive',
-      duration: '2 years',
-      responsibilities: 'Lead generation and customer acquisition'
-    }
-  ],
-  status: 'active',
-  emergencyContact: {
-    name: 'Ramesh Sharma',
-    relationship: 'Father',
-    phone: '+91 98765 43217'
-  },
-  createdAt: '2021-06-01',
-  createdBy: 'hr@ramnirmalchits.com',
-  updatedAt: '2024-03-15',
-  updatedBy: 'priya.sharma@ramnirmalchits.com',
-  notes: 'Top performing sales executive with excellent customer relationships'
-};
+const EmployeeTable: React.FC<{ 
+  employees: Employee[]; 
+  onEmployeeSelect: (employeeId: string) => void;
+  selectedEmployeeId?: string;
+}> = ({ employees, onEmployeeSelect, selectedEmployeeId }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterBranch, setFilterBranch] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
-export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const actualEmployeeId = searchParams.get('id') || employeeId;
-  
-  const [employee, setEmployee] = useState<Employee>(() => {
-    // Load specific employee from localStorage
-    const saved = localStorage.getItem('employees_data');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const allEmployees = [...sampleEmployees, ...parsed];
-        const foundEmployee = allEmployees.find((emp: Employee) => emp.id === actualEmployeeId || emp.employeeId === actualEmployeeId);
-        return foundEmployee || sampleEmployee;
-      } catch (error) {
-        console.error('Failed to load employee:', error);
-        return sampleEmployee;
-      }
-    }
-    return sampleEmployee;
-  });
-  const [activeTab, setActiveTab] = useState('overview');
+  const branches = getBranches();
+  const uniqueBranches = [...new Set(employees.map(e => e.branch))];
 
-  // Listen for employee updates
-  React.useEffect(() => {
-    const handleEmployeeUpdate = () => {
-      const saved = localStorage.getItem('employees_data');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          const allEmployees = [...sampleEmployees, ...parsed];
-          const foundEmployee = allEmployees.find((emp: Employee) => emp.id === actualEmployeeId || emp.employeeId === actualEmployeeId);
-          if (foundEmployee) {
-            setEmployee(foundEmployee);
-          }
-        } catch (error) {
-          console.error('Failed to reload employee:', error);
-        }
-      }
-    };
-
-    window.addEventListener('storage', handleEmployeeUpdate);
-    window.addEventListener('employeesUpdated', handleEmployeeUpdate);
+  const filteredEmployees = employees.filter(employee => {
+    const matchesSearch = employee.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         employee.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         employee.employeeId.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesBranch = filterBranch === 'all' || employee.branch === filterBranch;
+    const matchesStatus = filterStatus === 'all' || employee.status === filterStatus;
     
-    return () => {
-      window.removeEventListener('storage', handleEmployeeUpdate);
-      window.removeEventListener('employeesUpdated', handleEmployeeUpdate);
-    };
-  }, [actualEmployeeId]);
+    return matchesSearch && matchesBranch && matchesStatus;
+  });
 
-  const handleEditEmployee = () => {
-    navigate(`/hrms-edit-employee?id=${employee.id}`);
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'inactive': return 'bg-gray-100 text-gray-800';
+      case 'terminated': return 'bg-red-100 text-red-800';
+      case 'on-leave': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
-  const handleCallEmployee = () => {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const handleCall = (employee: Employee) => {
     if (navigator.userAgent.match(/Mobile|Android|iPhone|iPad/)) {
       window.location.href = `tel:${employee.phone}`;
     } else {
@@ -160,7 +65,7 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
     toast.success(`Call initiated to ${employee.firstName} ${employee.lastName}`);
   };
 
-  const handleEmailEmployee = () => {
+  const handleEmail = (employee: Employee) => {
     const subject = encodeURIComponent(`Follow-up: ${employee.firstName} ${employee.lastName} - HR Communication`);
     const body = encodeURIComponent(`Dear ${employee.firstName},
 
@@ -175,6 +80,661 @@ Ramnirmalchits Financial Services`);
     toast.success(`Email client opened for ${employee.firstName} ${employee.lastName}`);
   };
 
+  return (
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="bg-slate-800/40 backdrop-blur-xl rounded-xl p-4 border border-yellow-400/30">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 h-4 w-4" />
+            <input
+              type="text"
+              placeholder="Search employees..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg w-full text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm"
+            />
+          </div>
+          <select
+            value={filterBranch}
+            onChange={(e) => setFilterBranch(e.target.value)}
+            className="px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm"
+          >
+            <option value="all">All Branches</option>
+            {uniqueBranches.map(branch => (
+              <option key={branch} value={branch}>{branch}</option>
+            ))}
+          </select>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="terminated">Terminated</option>
+            <option value="on-leave">On Leave</option>
+          </select>
+          <div className="text-sm text-slate-400 flex items-center">
+            Showing: <span className="font-semibold ml-1 text-slate-50">{filteredEmployees.length}</span> employees
+          </div>
+        </div>
+      </div>
+
+      {/* Employees Table */}
+      <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-yellow-400/30 overflow-hidden">
+        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+          <table className="w-full">
+            <thead className="bg-slate-700/50 border-b border-yellow-400/20 sticky top-0">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Employee</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Department</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Branch</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Contact</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Salary</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-yellow-400/20">
+              {filteredEmployees.map((employee) => (
+                <tr 
+                  key={employee.id} 
+                  className={`hover:bg-slate-700/20 transition-colors cursor-pointer ${
+                    selectedEmployeeId === employee.id ? 'bg-blue-500/10 border-l-4 border-l-blue-500' : ''
+                  }`}
+                  onClick={() => onEmployeeSelect(employee.id)}
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-10 w-10 bg-slate-600/50 rounded-full flex items-center justify-center text-slate-50 font-medium border border-yellow-400/30">
+                        {employee.firstName.charAt(0)}{employee.lastName.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-50">{employee.firstName} {employee.lastName}</p>
+                        <p className="text-xs text-slate-400">{employee.employeeId} • {employee.designation}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <p className="text-sm font-medium text-slate-50">{employee.department}</p>
+                      <p className="text-xs text-slate-400">{employee.employmentType}</p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <p className="text-sm font-medium text-slate-50">{employee.branch}</p>
+                      <p className="text-xs text-slate-400">Manager: {employee.reportingManager}</p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <p className="text-sm text-slate-50">{employee.email}</p>
+                      <p className="text-xs text-slate-400">{employee.phone}</p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <p className="text-sm font-medium text-slate-50">{formatCurrency(employee.basicSalary)}</p>
+                      <p className="text-xs text-green-400">Basic</p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(employee.status)}`}>
+                      {employee.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEmployeeSelect(employee.id);
+                        }}
+                        className="text-blue-400 hover:text-blue-300"
+                        title="View Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCall(employee);
+                        }}
+                        className="text-green-400 hover:text-green-300"
+                        title="Call Employee"
+                      >
+                        <Phone className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEmail(employee);
+                        }}
+                        className="text-purple-400 hover:text-purple-300"
+                        title="Send Email"
+                      >
+                        <Mail className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const EditEmployeeForm: React.FC<{
+  employee: Employee;
+  onSave: (updatedEmployee: Employee) => void;
+  onCancel: () => void;
+}> = ({ employee, onSave, onCancel }) => {
+  const [formData, setFormData] = useState<Employee>({ ...employee });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  const branches = getBranches().filter(b => b.status === 'active');
+  const departments = [
+    'Executive', 'Operations', 'Sales & Marketing', 'Finance & Accounts', 
+    'Human Resources', 'Information Technology', 'Customer Service'
+  ];
+  const managers = [
+    'Prakashh Admin', 'Rajesh Kumar', 'Priya Sharma', 'Amit Patel', 'Sunita Reddy'
+  ];
+
+  const handleInputChange = (field: keyof Employee, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleNestedChange = (parent: string, field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [parent]: {
+        ...prev[parent as keyof Employee],
+        [field]: value
+      }
+    }));
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.firstName?.trim()) newErrors.firstName = 'First name is required';
+    if (!formData.lastName?.trim()) newErrors.lastName = 'Last name is required';
+    if (!formData.email?.trim()) newErrors.email = 'Email is required';
+    if (!formData.phone?.trim()) newErrors.phone = 'Phone is required';
+    if (!formData.designation?.trim()) newErrors.designation = 'Designation is required';
+    if (!formData.department?.trim()) newErrors.department = 'Department is required';
+    if (!formData.branch?.trim()) newErrors.branch = 'Branch is required';
+    if (!formData.basicSalary || formData.basicSalary <= 0) newErrors.basicSalary = 'Basic salary is required';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      toast.error('Please fix the errors before saving');
+      return;
+    }
+
+    setIsSaving(true);
+    
+    try {
+      const updatedEmployee = {
+        ...formData,
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'current-user@ramnirmalchits.com'
+      };
+      
+      onSave(updatedEmployee);
+      toast.success(`Employee ${updatedEmployee.firstName} ${updatedEmployee.lastName} updated successfully!`);
+    } catch (error) {
+      console.error('Error updating employee:', error);
+      toast.error('Failed to update employee. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-xl font-semibold text-slate-50">Edit Employee Details</h3>
+        <button
+          onClick={onCancel}
+          className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-700/50 rounded-lg transition-all"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+      
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-50 mb-2">First Name *</label>
+            <input
+              type="text"
+              value={formData.firstName}
+              onChange={(e) => handleInputChange('firstName', e.target.value)}
+              className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                errors.firstName ? 'border-red-500' : 'border-yellow-400/30'
+              }`}
+              disabled={isSaving}
+            />
+            {errors.firstName && <p className="mt-1 text-sm text-red-400">{errors.firstName}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-50 mb-2">Last Name *</label>
+            <input
+              type="text"
+              value={formData.lastName}
+              onChange={(e) => handleInputChange('lastName', e.target.value)}
+              className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                errors.lastName ? 'border-red-500' : 'border-yellow-400/30'
+              }`}
+              disabled={isSaving}
+            />
+            {errors.lastName && <p className="mt-1 text-sm text-red-400">{errors.lastName}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-50 mb-2">Email *</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                errors.email ? 'border-red-500' : 'border-yellow-400/30'
+              }`}
+              disabled={isSaving}
+            />
+            {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-50 mb-2">Phone *</label>
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => handleInputChange('phone', e.target.value)}
+              className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                errors.phone ? 'border-red-500' : 'border-yellow-400/30'
+              }`}
+              disabled={isSaving}
+            />
+            {errors.phone && <p className="mt-1 text-sm text-red-400">{errors.phone}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-50 mb-2">Designation *</label>
+            <input
+              type="text"
+              value={formData.designation}
+              onChange={(e) => handleInputChange('designation', e.target.value)}
+              className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                errors.designation ? 'border-red-500' : 'border-yellow-400/30'
+              }`}
+              disabled={isSaving}
+            />
+            {errors.designation && <p className="mt-1 text-sm text-red-400">{errors.designation}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-50 mb-2">Department *</label>
+            <select
+              value={formData.department}
+              onChange={(e) => handleInputChange('department', e.target.value)}
+              className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                errors.department ? 'border-red-500' : 'border-yellow-400/30'
+              }`}
+              disabled={isSaving}
+            >
+              <option value="">Select Department</option>
+              {departments.map(dept => (
+                <option key={dept} value={dept}>{dept}</option>
+              ))}
+            </select>
+            {errors.department && <p className="mt-1 text-sm text-red-400">{errors.department}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-50 mb-2">Branch *</label>
+            <select
+              value={formData.branch}
+              onChange={(e) => handleInputChange('branch', e.target.value)}
+              className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                errors.branch ? 'border-red-500' : 'border-yellow-400/30'
+              }`}
+              disabled={isSaving}
+            >
+              <option value="">Select Branch</option>
+              {branches.map(branch => (
+                <option key={branch.id} value={branch.name}>
+                  {branch.name} - {branch.city}
+                </option>
+              ))}
+            </select>
+            {errors.branch && <p className="mt-1 text-sm text-red-400">{errors.branch}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-50 mb-2">Reporting Manager</label>
+            <select
+              value={formData.reportingManager || ''}
+              onChange={(e) => handleInputChange('reportingManager', e.target.value)}
+              className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+              disabled={isSaving}
+            >
+              <option value="">Select Manager</option>
+              {managers.map(manager => (
+                <option key={manager} value={manager}>{manager}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-50 mb-2">Basic Salary (₹) *</label>
+            <input
+              type="number"
+              value={formData.basicSalary}
+              onChange={(e) => handleInputChange('basicSalary', parseFloat(e.target.value) || 0)}
+              className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                errors.basicSalary ? 'border-red-500' : 'border-yellow-400/30'
+              }`}
+              disabled={isSaving}
+            />
+            {errors.basicSalary && <p className="mt-1 text-sm text-red-400">{errors.basicSalary}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-50 mb-2">HRA (₹)</label>
+            <input
+              type="number"
+              value={formData.allowances?.hra || 0}
+              onChange={(e) => handleNestedChange('allowances', 'hra', parseFloat(e.target.value) || 0)}
+              className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+              disabled={isSaving}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-50 mb-2">Transport Allowance (₹)</label>
+            <input
+              type="number"
+              value={formData.allowances?.transport || 0}
+              onChange={(e) => handleNestedChange('allowances', 'transport', parseFloat(e.target.value) || 0)}
+              className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+              disabled={isSaving}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-50 mb-2">Employment Type</label>
+            <select
+              value={formData.employmentType}
+              onChange={(e) => handleInputChange('employmentType', e.target.value)}
+              className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+              disabled={isSaving}
+            >
+              <option value="permanent">Permanent</option>
+              <option value="contract">Contract</option>
+              <option value="intern">Intern</option>
+              <option value="consultant">Consultant</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-50 mb-2">Status</label>
+            <select
+              value={formData.status}
+              onChange={(e) => handleInputChange('status', e.target.value)}
+              className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+              disabled={isSaving}
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="on-leave">On Leave</option>
+              <option value="terminated">Terminated</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-50 mb-2">Address</label>
+          <textarea
+            rows={3}
+            value={formData.address}
+            onChange={(e) => handleInputChange('address', e.target.value)}
+            className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+            disabled={isSaving}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-50 mb-2">Notes</label>
+          <textarea
+            rows={3}
+            value={formData.notes}
+            onChange={(e) => handleInputChange('notes', e.target.value)}
+            className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+            disabled={isSaving}
+          />
+        </div>
+
+        <div className="flex justify-end space-x-3 pt-6 border-t border-yellow-400/30">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSaving}
+            className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700/50 border border-yellow-400/30 rounded-lg hover:bg-slate-700 transition-all disabled:opacity-50 backdrop-blur-sm"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="inline-flex items-center px-6 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const actualEmployeeId = searchParams.get('id') || employeeId;
+  
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(actualEmployeeId);
+  const [activeTab, setActiveTab] = useState('table');
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Load employees data on component mount
+  React.useEffect(() => {
+    const loadedEmployees = getEmployees();
+    setEmployees(loadedEmployees);
+    
+    // Find the specific employee or use the first one
+    const foundEmployee = loadedEmployees.find(e => e.id === actualEmployeeId || e.employeeId === actualEmployeeId) || loadedEmployees[0];
+    if (foundEmployee) {
+      setSelectedEmployee(foundEmployee);
+      setSelectedEmployeeId(foundEmployee.id);
+    }
+  }, [actualEmployeeId]);
+
+  // Listen for storage changes
+  React.useEffect(() => {
+    const handleEmployeeUpdate = () => {
+      const updatedEmployees = getEmployees();
+      setEmployees(updatedEmployees);
+      
+      if (selectedEmployeeId) {
+        const updatedEmployee = updatedEmployees.find(e => e.id === selectedEmployeeId);
+        if (updatedEmployee) {
+          setSelectedEmployee(updatedEmployee);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleEmployeeUpdate);
+    window.addEventListener('employeesUpdated', handleEmployeeUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleEmployeeUpdate);
+      window.removeEventListener('employeesUpdated', handleEmployeeUpdate);
+    };
+  }, [selectedEmployeeId]);
+
+  const handleEmployeeSelect = (newEmployeeId: string) => {
+    const employee = employees.find(e => e.id === newEmployeeId);
+    if (employee) {
+      setSelectedEmployee(employee);
+      setSelectedEmployeeId(newEmployeeId);
+      setActiveTab('overview');
+      setIsEditing(false);
+    }
+  };
+
+  const handleEditEmployee = () => {
+    setIsEditing(true);
+  };
+
+  const handleSaveEmployee = (updatedEmployee: Employee) => {
+    try {
+      // Update in localStorage
+      const allEmployees = getEmployees();
+      const updatedEmployees = allEmployees.map(emp => 
+        emp.id === updatedEmployee.id ? updatedEmployee : emp
+      );
+      
+      // Save to localStorage (excluding sample employees)
+      const savedEmployees = JSON.parse(localStorage.getItem('employees_data') || '[]');
+      const updatedSavedEmployees = savedEmployees.map((emp: Employee) => 
+        emp.id === updatedEmployee.id ? updatedEmployee : emp
+      );
+      
+      // If employee not in saved list, add it
+      if (!updatedSavedEmployees.find((emp: Employee) => emp.id === updatedEmployee.id)) {
+        updatedSavedEmployees.push(updatedEmployee);
+      }
+      
+      localStorage.setItem('employees_data', JSON.stringify(updatedSavedEmployees));
+      
+      // Update local state
+      setEmployees(updatedEmployees);
+      setSelectedEmployee(updatedEmployee);
+      setIsEditing(false);
+      
+      // Trigger update events
+      window.dispatchEvent(new CustomEvent('employeesUpdated'));
+      
+      toast.success('Employee updated successfully!');
+    } catch (error) {
+      console.error('Error updating employee:', error);
+      toast.error('Failed to update employee. Please try again.');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  const handleCallEmployee = (employee: Employee) => {
+    if (navigator.userAgent.match(/Mobile|Android|iPhone|iPad/)) {
+      window.location.href = `tel:${employee.phone}`;
+    } else {
+      navigator.clipboard.writeText(employee.phone).then(() => {
+        toast.success(`Phone number ${employee.phone} copied to clipboard`);
+      }).catch(() => {
+        toast.error('Could not copy phone number');
+      });
+    }
+    toast.success(`Call initiated to ${employee.firstName} ${employee.lastName}`);
+  };
+
+  const handleEmailEmployee = (employee: Employee) => {
+    const subject = encodeURIComponent(`Follow-up: ${employee.firstName} ${employee.lastName} - HR Communication`);
+    const body = encodeURIComponent(`Dear ${employee.firstName},
+
+I hope this email finds you well.
+
+Best regards,
+HR Team
+Ramnirmalchits Financial Services`);
+    
+    const mailtoLink = `mailto:${employee.email}?subject=${subject}&body=${body}`;
+    window.location.href = mailtoLink;
+    toast.success(`Email client opened for ${employee.firstName} ${employee.lastName}`);
+  };
+
+  const handleDeleteEmployee = (employee: Employee) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ${employee.firstName} ${employee.lastName}? This action cannot be undone.`
+    );
+    
+    if (confirmDelete) {
+      try {
+        // Remove from localStorage
+        const saved = localStorage.getItem('employees_data');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const updatedEmployees = parsed.filter((emp: Employee) => emp.id !== employee.id);
+          localStorage.setItem('employees_data', JSON.stringify(updatedEmployees));
+          
+          // Update local state
+          setEmployees(prev => prev.filter(emp => emp.id !== employee.id));
+          
+          // If deleted employee was selected, clear selection
+          if (selectedEmployeeId === employee.id) {
+            setSelectedEmployee(null);
+            setSelectedEmployeeId('');
+            setActiveTab('table');
+          }
+          
+          // Trigger update events
+          window.dispatchEvent(new CustomEvent('employeesUpdated'));
+          
+          toast.success(`${employee.firstName} ${employee.lastName} deleted successfully`);
+        }
+      } catch (error) {
+        console.error('Error deleting employee:', error);
+        toast.error('Failed to delete employee. Please try again.');
+      }
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -183,8 +743,19 @@ Ramnirmalchits Financial Services`);
     }).format(amount);
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'inactive': return 'bg-gray-100 text-gray-800';
+      case 'terminated': return 'bg-red-100 text-red-800';
+      case 'on-leave': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   const tabs = [
-    { id: 'overview', name: 'Overview', icon: User },
+    { id: 'table', name: 'All Employees', icon: User },
+    { id: 'overview', name: 'Overview', icon: Eye },
     { id: 'compensation', name: 'Compensation', icon: DollarSign },
     { id: 'documents', name: 'Documents', icon: FileText },
     { id: 'activity', name: 'Activity', icon: Activity }
@@ -192,7 +763,36 @@ Ramnirmalchits Financial Services`);
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case 'table':
+        return (
+          <EmployeeTable 
+            employees={employees} 
+            onEmployeeSelect={handleEmployeeSelect}
+            selectedEmployeeId={selectedEmployeeId}
+          />
+        );
+
       case 'overview':
+        if (!selectedEmployee) {
+          return (
+            <div className="text-center py-12">
+              <User className="h-12 w-12 mx-auto text-slate-500 mb-4" />
+              <h3 className="text-lg font-medium text-slate-50 mb-2">No Employee Selected</h3>
+              <p className="text-sm text-slate-400">Select an employee from the table to view details.</p>
+            </div>
+          );
+        }
+
+        if (isEditing) {
+          return (
+            <EditEmployeeForm
+              employee={selectedEmployee}
+              onSave={handleSaveEmployee}
+              onCancel={handleCancelEdit}
+            />
+          );
+        }
+
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
@@ -200,19 +800,19 @@ Ramnirmalchits Financial Services`);
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Date of Birth</span>
-                  <span className="text-slate-50">{new Date(employee.dateOfBirth).toLocaleDateString()}</span>
+                  <span className="text-slate-50">{new Date(selectedEmployee.dateOfBirth).toLocaleDateString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Gender</span>
-                  <span className="text-slate-50 capitalize">{employee.gender}</span>
+                  <span className="text-slate-50 capitalize">{selectedEmployee.gender}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Marital Status</span>
-                  <span className="text-slate-50 capitalize">{employee.maritalStatus}</span>
+                  <span className="text-slate-50 capitalize">{selectedEmployee.maritalStatus}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Blood Group</span>
-                  <span className="text-slate-50">{employee.bloodGroup}</span>
+                  <span className="text-slate-50">{selectedEmployee.bloodGroup}</span>
                 </div>
               </div>
             </div>
@@ -222,23 +822,23 @@ Ramnirmalchits Financial Services`);
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Employee ID</span>
-                  <span className="text-slate-50">{employee.employeeId}</span>
+                  <span className="text-slate-50">{selectedEmployee.employeeId}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Designation</span>
-                  <span className="text-slate-50">{employee.designation}</span>
+                  <span className="text-slate-50">{selectedEmployee.designation}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Department</span>
-                  <span className="text-slate-50">{employee.department}</span>
+                  <span className="text-slate-50">{selectedEmployee.department}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Branch</span>
-                  <span className="text-slate-50">{employee.branch}</span>
+                  <span className="text-slate-50">{selectedEmployee.branch}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Reporting Manager</span>
-                  <span className="text-slate-50">{employee.reportingManager}</span>
+                  <span className="text-slate-50">{selectedEmployee.reportingManager}</span>
                 </div>
               </div>
             </div>
@@ -246,16 +846,26 @@ Ramnirmalchits Financial Services`);
         );
 
       case 'compensation':
-        const grossSalary = employee.basicSalary + 
-          employee.allowances.hra + 
-          employee.allowances.transport + 
-          employee.allowances.medical + 
-          employee.allowances.special;
+        if (!selectedEmployee) {
+          return (
+            <div className="text-center py-12">
+              <DollarSign className="h-12 w-12 mx-auto text-slate-500 mb-4" />
+              <h3 className="text-lg font-medium text-slate-50 mb-2">No Employee Selected</h3>
+              <p className="text-sm text-slate-400">Select an employee from the table to view compensation details.</p>
+            </div>
+          );
+        }
+
+        const grossSalary = selectedEmployee.basicSalary + 
+          selectedEmployee.allowances.hra + 
+          selectedEmployee.allowances.transport + 
+          selectedEmployee.allowances.medical + 
+          selectedEmployee.allowances.special;
         
-        const totalDeductions = employee.deductions.pf + 
-          employee.deductions.esi + 
-          employee.deductions.tax + 
-          employee.deductions.other;
+        const totalDeductions = selectedEmployee.deductions.pf + 
+          selectedEmployee.deductions.esi + 
+          selectedEmployee.deductions.tax + 
+          selectedEmployee.deductions.other;
         
         const netSalary = grossSalary - totalDeductions;
 
@@ -266,19 +876,19 @@ Ramnirmalchits Financial Services`);
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Basic Salary</span>
-                  <span className="text-slate-50 font-medium">{formatCurrency(employee.basicSalary)}</span>
+                  <span className="text-slate-50 font-medium">{formatCurrency(selectedEmployee.basicSalary)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">HRA</span>
-                  <span className="text-slate-50">{formatCurrency(employee.allowances.hra)}</span>
+                  <span className="text-slate-50">{formatCurrency(selectedEmployee.allowances.hra)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Transport</span>
-                  <span className="text-slate-50">{formatCurrency(employee.allowances.transport)}</span>
+                  <span className="text-slate-50">{formatCurrency(selectedEmployee.allowances.transport)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Medical</span>
-                  <span className="text-slate-50">{formatCurrency(employee.allowances.medical)}</span>
+                  <span className="text-slate-50">{formatCurrency(selectedEmployee.allowances.medical)}</span>
                 </div>
                 <div className="flex justify-between border-t border-yellow-400/20 pt-3">
                   <span className="text-slate-400 font-medium">Gross Salary</span>
@@ -292,15 +902,15 @@ Ramnirmalchits Financial Services`);
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-slate-400">PF</span>
-                  <span className="text-slate-50">{formatCurrency(employee.deductions.pf)}</span>
+                  <span className="text-slate-50">{formatCurrency(selectedEmployee.deductions.pf)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">ESI</span>
-                  <span className="text-slate-50">{formatCurrency(employee.deductions.esi)}</span>
+                  <span className="text-slate-50">{formatCurrency(selectedEmployee.deductions.esi)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Tax</span>
-                  <span className="text-slate-50">{formatCurrency(employee.deductions.tax)}</span>
+                  <span className="text-slate-50">{formatCurrency(selectedEmployee.deductions.tax)}</span>
                 </div>
                 <div className="flex justify-between border-t border-yellow-400/20 pt-3">
                   <span className="text-slate-400 font-medium">Net Salary</span>
@@ -336,39 +946,62 @@ Ramnirmalchits Financial Services`);
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex items-center space-x-4">
-            <div className="h-16 w-16 bg-slate-600/50 rounded-full flex items-center justify-center text-slate-50 font-bold text-xl border border-yellow-400/30">
-              {employee.firstName.charAt(0)}{employee.lastName.charAt(0)}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-50">{employee.firstName} {employee.lastName}</h1>
-              <p className="text-slate-400">{employee.designation} • {employee.department}</p>
-              <p className="text-slate-500 text-sm">{employee.employeeId}</p>
-            </div>
+            {selectedEmployee && (
+              <>
+                <div className="h-16 w-16 bg-slate-600/50 rounded-full flex items-center justify-center text-slate-50 font-bold text-xl border border-yellow-400/30">
+                  {selectedEmployee.firstName.charAt(0)}{selectedEmployee.lastName.charAt(0)}
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-slate-50">{selectedEmployee.firstName} {selectedEmployee.lastName}</h1>
+                  <p className="text-slate-400">{selectedEmployee.designation} • {selectedEmployee.department}</p>
+                  <p className="text-slate-500 text-sm">{selectedEmployee.employeeId}</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
-        <div className="flex space-x-3">
-          <button 
-            onClick={handleCallEmployee}
-            className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm"
-          >
-            <Phone className="h-4 w-4 mr-2" />
-            Call
-          </button>
-          <button 
-            onClick={handleEmailEmployee}
-            className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm"
-          >
-            <Mail className="h-4 w-4 mr-2" />
-            Email
-          </button>
-          <button 
-            onClick={handleEditEmployee}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-all"
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Employee
-          </button>
-        </div>
+        {selectedEmployee && (
+          <div className="flex space-x-3">
+            <button 
+              onClick={() => handleCallEmployee(selectedEmployee)}
+              className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm"
+            >
+              <Phone className="h-4 w-4 mr-2" />
+              Call
+            </button>
+            <button 
+              onClick={() => handleEmailEmployee(selectedEmployee)}
+              className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm"
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              Email
+            </button>
+            <button 
+              onClick={() => handleDeleteEmployee(selectedEmployee)}
+              className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </button>
+            {isEditing ? (
+              <button 
+                onClick={handleCancelEdit}
+                className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancel Edit
+              </button>
+            ) : (
+              <button 
+                onClick={handleEditEmployee}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-all"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Employee
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -388,6 +1021,11 @@ Ramnirmalchits Financial Services`);
               >
                 <Icon className="h-4 w-4 mr-2" />
                 {tab.name}
+                {tab.id === 'table' && (
+                  <span className="ml-2 bg-slate-700/50 text-slate-300 px-2 py-1 rounded-full text-xs">
+                    {employees.length}
+                  </span>
+                )}
               </button>
             );
           })}
