@@ -2,8 +2,11 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { TrendingUp, Award, Target, DollarSign, Users, Calendar, BarChart3, PieChart, Plus, Eye, UserPlus, CheckCircle, Star, Trophy, Crown, Medal, Phone, Mail, Building, User, CreditCard, Search, Filter, MoreVertical, Activity, FileText } from 'lucide-react';
 import { loadLeads, updateLead } from '../../data/leads.mock';
 import { Lead } from '../../types/crm';
+import { getBranches } from '../../data/branches.mock';
+import { getAgentsByBranch } from '../../data/agents.mock';
+import { getEmployeesByBranch } from '../../data/employees.mock';
 import toast from 'react-hot-toast';
-import { Copy } from 'lucide-react';
+import { Copy, Download, Send } from 'lucide-react';
 
 interface ConvertedLead extends Lead {
   conversionDate: string;
@@ -19,6 +22,22 @@ interface AgentPerformance {
   totalValue: number;
   rank: number;
   badge: 'champion' | 'star' | 'performer' | 'rookie';
+}
+
+interface BranchPerformance {
+  branchName: string;
+  branchCode: string;
+  totalLeads: number;
+  convertedLeads: number;
+  conversionRate: number;
+  totalValue: number;
+  agentCount: number;
+  employeeCount: number;
+  avgDealSize: number;
+  rank: number;
+  badge: 'excellent' | 'good' | 'average' | 'needs-improvement';
+  agents: AgentPerformance[];
+  employees: any[];
 }
 
 // Mock function to save subscriber (in real app, this would call an API)
@@ -392,11 +411,175 @@ const AgentPerformanceCard: React.FC<{ performance: AgentPerformance }> = ({ per
   );
 };
 
+const BranchPerformanceCard: React.FC<{ 
+  performance: BranchPerformance; 
+  onExportSheet: (branchName: string) => void;
+  onSendEmails: (branchName: string) => void;
+}> = ({ performance, onExportSheet, onSendEmails }) => {
+  const getBadgeColor = (badge: string) => {
+    switch (badge) {
+      case 'excellent': return 'bg-green-100 text-green-800 border-green-200';
+      case 'good': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'average': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'needs-improvement': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getRankIcon = (rank: number) => {
+    switch (rank) {
+      case 1: return Crown;
+      case 2: return Medal;
+      case 3: return Award;
+      default: return Building;
+    }
+  };
+
+  const getRankColor = (rank: number) => {
+    switch (rank) {
+      case 1: return 'text-yellow-400';
+      case 2: return 'text-gray-300';
+      case 3: return 'text-orange-400';
+      default: return 'text-slate-400';
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const RankIcon = getRankIcon(performance.rank);
+
+  return (
+    <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30 hover:border-yellow-400/50 transition-all">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <div className={`p-3 rounded-xl border border-yellow-400/30 ${
+            performance.rank === 1 ? 'bg-yellow-500/20' :
+            performance.rank === 2 ? 'bg-gray-500/20' :
+            performance.rank === 3 ? 'bg-orange-500/20' : 'bg-blue-500/20'
+          }`}>
+            <RankIcon className={`h-6 w-6 ${getRankColor(performance.rank)}`} />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h3 className="text-lg font-semibold text-slate-50">#{performance.rank}</h3>
+              <h4 className="text-lg font-semibold text-slate-50">{performance.branchName}</h4>
+            </div>
+            <p className="text-sm text-slate-400">{performance.branchCode}</p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getBadgeColor(performance.badge)}`}>
+            {performance.badge.replace('-', ' ').toUpperCase()}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">Total Leads</span>
+            <span className="text-slate-50 font-medium">{performance.totalLeads}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">Converted</span>
+            <span className="text-green-400 font-medium">{performance.convertedLeads}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">Agents</span>
+            <span className="text-blue-400 font-medium">{performance.agentCount}</span>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">Conversion Rate</span>
+            <span className="text-purple-400 font-medium">{performance.conversionRate.toFixed(1)}%</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">Total Value</span>
+            <span className="text-orange-400 font-medium">{formatCurrency(performance.totalValue)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-400">Employees</span>
+            <span className="text-emerald-400 font-medium">{performance.employeeCount}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Performance Progress Bar */}
+      <div className="mb-4">
+        <div className="flex justify-between text-sm text-slate-400 mb-1">
+          <span>Branch Performance</span>
+          <span>{performance.conversionRate.toFixed(1)}%</span>
+        </div>
+        <div className="w-full bg-slate-700/50 rounded-full h-3 border border-yellow-400/20">
+          <div
+            className={`h-3 rounded-full transition-all duration-300 ${
+              performance.conversionRate >= 80 ? 'bg-green-500' :
+              performance.conversionRate >= 60 ? 'bg-yellow-500' :
+              performance.conversionRate >= 40 ? 'bg-orange-500' : 'bg-red-500'
+            }`}
+            style={{ width: `${Math.min(performance.conversionRate, 100)}%` }}
+          ></div>
+        </div>
+      </div>
+
+      {/* Top Performers Preview */}
+      <div className="mb-4 p-3 bg-slate-700/30 rounded-xl border border-yellow-400/20">
+        <p className="text-xs text-slate-500 mb-2">Top Performers:</p>
+        <div className="space-y-1">
+          {performance.agents.slice(0, 3).map((agent, index) => (
+            <div key={agent.agentName} className="flex items-center justify-between text-xs">
+              <span className="text-slate-300">{index + 1}. {agent.agentName}</span>
+              <span className="text-green-400">{agent.conversionRate.toFixed(1)}%</span>
+            </div>
+          ))}
+          {performance.agents.length > 3 && (
+            <p className="text-xs text-slate-500">+{performance.agents.length - 3} more agents</p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center pt-4 border-t border-yellow-400/20">
+        <div className="flex items-center text-xs text-slate-500">
+          <Building className="h-3 w-3 mr-1" />
+          <span>Rank #{performance.rank} • {performance.badge}</span>
+        </div>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => onExportSheet(performance.branchName)}
+            className="p-2 text-slate-400 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-all"
+            title="Export Performance Sheet"
+          >
+            <Download className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => onSendEmails(performance.branchName)}
+            className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all"
+            title="Send Performance Emails"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+          <button className="p-2 text-slate-400 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-all">
+            <Eye className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const Conversions: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('current-month');
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [activeTab, setActiveTab] = useState('converted-leads');
+  const [activeTab, setActiveTab] = useState('sales-performance');
   const [convertedLeadsData, setConvertedLeadsData] = useState<ConvertedLead[]>([]);
+  const [branches] = useState(() => getBranches());
 
   // Load leads data on component mount
   useEffect(() => {
@@ -514,6 +697,82 @@ export const Conversions: React.FC = () => {
     return performances;
   }, [leads]);
 
+  // Calculate branch performance
+  const branchPerformance = useMemo(() => {
+    const branchStats: Record<string, BranchPerformance> = {};
+    
+    branches.forEach(branch => {
+      const branchLeads = leads.filter(lead => lead.branch === branch.name);
+      const branchAgents = getAgentsByBranch(branch.name);
+      const branchEmployees = getEmployeesByBranch(branch.name);
+      
+      const convertedLeads = branchLeads.filter(lead => lead.status === 'won');
+      const conversionRate = branchLeads.length > 0 ? (convertedLeads.length / branchLeads.length) * 100 : 0;
+      const totalValue = convertedLeads.reduce((sum, lead) => sum + lead.value, 0);
+      const avgDealSize = convertedLeads.length > 0 ? totalValue / convertedLeads.length : 0;
+      
+      // Calculate agent performance for this branch
+      const branchAgentPerformance = branchAgents.map(agent => {
+        const agentName = `${agent.firstName} ${agent.lastName}`;
+        const agentLeads = branchLeads.filter(lead => lead.assignedTo === agentName);
+        const agentConverted = agentLeads.filter(lead => lead.status === 'won');
+        const agentConversionRate = agentLeads.length > 0 ? (agentConverted.length / agentLeads.length) * 100 : 0;
+        const agentValue = agentConverted.reduce((sum, lead) => sum + lead.value, 0);
+        
+        return {
+          agentName,
+          totalLeads: agentLeads.length,
+          convertedLeads: agentConverted.length,
+          conversionRate: agentConversionRate,
+          totalValue: agentValue,
+          rank: 0,
+          badge: agentConversionRate >= 80 ? 'champion' :
+                 agentConversionRate >= 60 ? 'star' :
+                 agentConversionRate >= 40 ? 'performer' : 'rookie'
+        } as AgentPerformance;
+      });
+      
+      // Sort agents by conversion rate
+      branchAgentPerformance.sort((a, b) => b.conversionRate - a.conversionRate);
+      branchAgentPerformance.forEach((agent, index) => {
+        agent.rank = index + 1;
+      });
+      
+      branchStats[branch.name] = {
+        branchName: branch.name,
+        branchCode: branch.code,
+        totalLeads: branchLeads.length,
+        convertedLeads: convertedLeads.length,
+        conversionRate,
+        totalValue,
+        agentCount: branchAgents.length,
+        employeeCount: branchEmployees.length,
+        avgDealSize,
+        rank: 0,
+        badge: conversionRate >= 80 ? 'excellent' :
+               conversionRate >= 60 ? 'good' :
+               conversionRate >= 40 ? 'average' : 'needs-improvement',
+        agents: branchAgentPerformance,
+        employees: branchEmployees.map(emp => ({
+          name: `${emp.firstName} ${emp.lastName}`,
+          designation: emp.designation,
+          department: emp.department,
+          email: emp.email,
+          phone: emp.phone
+        }))
+      };
+    });
+
+    // Sort branches by conversion rate and assign ranks
+    const performances = Object.values(branchStats);
+    performances.sort((a, b) => b.conversionRate - a.conversionRate);
+    performances.forEach((branch, index) => {
+      branch.rank = index + 1;
+    });
+
+    return performances;
+  }, [leads, branches]);
+
   const handleConvertToSubscriber = (lead: ConvertedLead) => {
     try {
       // Create subscriber data from lead
@@ -549,9 +808,144 @@ export const Conversions: React.FC = () => {
     }
   };
 
+  const handleExportPerformanceSheet = (branchName: string) => {
+    const branch = branchPerformance.find(b => b.branchName === branchName);
+    if (!branch) {
+      toast.error('Branch data not found');
+      return;
+    }
+
+    // Generate CSV content
+    const csvContent = [
+      ['Branch Performance Report'],
+      ['Generated on:', new Date().toLocaleDateString()],
+      [''],
+      ['Branch Information'],
+      ['Branch Name', branch.branchName],
+      ['Branch Code', branch.branchCode],
+      ['Total Leads', branch.totalLeads.toString()],
+      ['Converted Leads', branch.convertedLeads.toString()],
+      ['Conversion Rate', `${branch.conversionRate.toFixed(1)}%`],
+      ['Total Value', `₹${branch.totalValue.toLocaleString('en-IN')}`],
+      ['Average Deal Size', `₹${branch.avgDealSize.toLocaleString('en-IN')}`],
+      ['Branch Rank', `#${branch.rank}`],
+      ['Performance Badge', branch.badge],
+      [''],
+      ['Agent Performance'],
+      ['Rank', 'Agent Name', 'Total Leads', 'Converted', 'Conversion Rate', 'Total Value', 'Badge'],
+      ...branch.agents.map(agent => [
+        agent.rank.toString(),
+        agent.agentName,
+        agent.totalLeads.toString(),
+        agent.convertedLeads.toString(),
+        `${agent.conversionRate.toFixed(1)}%`,
+        `₹${agent.totalValue.toLocaleString('en-IN')}`,
+        agent.badge
+      ]),
+      [''],
+      ['Employee Information'],
+      ['Name', 'Designation', 'Department', 'Email', 'Phone'],
+      ...branch.employees.map(emp => [
+        emp.name,
+        emp.designation,
+        emp.department,
+        emp.email,
+        emp.phone
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${branchName.replace(/\s+/g, '_')}_Performance_Report_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success(`Performance sheet exported for ${branchName}`);
+  };
+
+  const handleSendPerformanceEmails = (branchName: string) => {
+    const branch = branchPerformance.find(b => b.branchName === branchName);
+    if (!branch) {
+      toast.error('Branch data not found');
+      return;
+    }
+
+    // Send emails to all agents in the branch
+    branch.agents.forEach(agent => {
+      const subject = encodeURIComponent(`Performance Report - ${new Date().toLocaleDateString()}`);
+      const body = encodeURIComponent(`Dear ${agent.agentName},
+
+Here's your performance summary for ${branchName}:
+
+🏆 Your Performance:
+• Rank: #${agent.rank} in ${branchName}
+• Total Leads: ${agent.totalLeads}
+• Converted Leads: ${agent.convertedLeads}
+• Conversion Rate: ${agent.conversionRate.toFixed(1)}%
+• Total Value: ₹${agent.totalValue.toLocaleString('en-IN')}
+• Performance Badge: ${agent.badge}
+
+🏢 Branch Performance:
+• Branch Rank: #${branch.rank}
+• Branch Conversion Rate: ${branch.conversionRate.toFixed(1)}%
+• Total Branch Value: ₹${branch.totalValue.toLocaleString('en-IN')}
+
+Keep up the excellent work!
+
+Best regards,
+Management Team
+Ramnirmalchits Financial Services`);
+      
+      // Find agent email from agents data
+      const agentData = getAgentsByBranch(branchName).find(a => `${a.firstName} ${a.lastName}` === agent.agentName);
+      if (agentData) {
+        const mailtoLink = `mailto:${agentData.email}?subject=${subject}&body=${body}`;
+        window.open(mailtoLink, '_blank');
+      }
+    });
+
+    // Send emails to all employees in the branch
+    branch.employees.forEach(employee => {
+      const subject = encodeURIComponent(`Branch Performance Update - ${new Date().toLocaleDateString()}`);
+      const body = encodeURIComponent(`Dear ${employee.name},
+
+Here's the performance update for ${branchName}:
+
+🏢 Branch Performance Summary:
+• Branch Rank: #${branch.rank}
+• Total Leads: ${branch.totalLeads}
+• Converted Leads: ${branch.convertedLeads}
+• Conversion Rate: ${branch.conversionRate.toFixed(1)}%
+• Total Value: ₹${branch.totalValue.toLocaleString('en-IN')}
+• Performance Badge: ${branch.badge}
+
+👥 Team Strength:
+• Agents: ${branch.agentCount}
+• Employees: ${branch.employeeCount}
+• Average Deal Size: ₹${branch.avgDealSize.toLocaleString('en-IN')}
+
+Thank you for your contribution to our success!
+
+Best regards,
+Management Team
+Ramnirmalchits Financial Services`);
+      
+      const mailtoLink = `mailto:${employee.email}?subject=${subject}&body=${body}`;
+      window.open(mailtoLink, '_blank');
+    });
+
+    toast.success(`Performance emails sent to ${branch.agentCount + branch.employeeCount} team members in ${branchName}`);
+  };
+
   const tabs = [
     { id: 'converted-leads', name: 'Converted Leads', icon: CheckCircle, count: convertedLeadsData.length },
-    { id: 'sales-performance', name: 'Sales & Ranking Performance', icon: Trophy, count: agentPerformance.length }
+    { id: 'sales-performance', name: 'Sales & Ranking Performance', icon: Trophy, count: agentPerformance.length },
+    { id: 'branch-performance', name: 'Branch Performance Analysis', icon: Building, count: branchPerformance.length }
   ];
 
   const renderTabContent = () => {
@@ -622,6 +1016,74 @@ export const Conversions: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {agentPerformance.map((performance) => (
                 <AgentPerformanceCard key={performance.agentName} performance={performance} />
+              ))}
+            </div>
+          </div>
+        );
+      
+      case 'branch-performance':
+        return (
+          <div className="space-y-6">
+            {/* Top 3 Branch Podium */}
+            <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
+              <h3 className="text-lg font-semibold text-slate-50 mb-6 flex items-center">
+                <Building className="h-5 w-5 mr-2" />
+                Top Performing Branches
+              </h3>
+              <div className="flex items-end justify-center space-x-8">
+                {/* 2nd Place */}
+                {branchPerformance[1] && (
+                  <div className="text-center">
+                    <div className="w-20 h-16 bg-gray-500/20 rounded-t-lg flex items-center justify-center border border-yellow-400/30 mb-2">
+                      <Medal className="h-8 w-8 text-gray-300" />
+                    </div>
+                    <div className="bg-slate-700/30 rounded-lg p-3 border border-yellow-400/20">
+                      <p className="text-sm font-semibold text-slate-50">{branchPerformance[1].branchName}</p>
+                      <p className="text-xs text-slate-400">{branchPerformance[1].convertedLeads} conversions</p>
+                      <p className="text-xs text-gray-300">{branchPerformance[1].conversionRate.toFixed(1)}% rate</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 1st Place */}
+                {branchPerformance[0] && (
+                  <div className="text-center">
+                    <div className="w-24 h-20 bg-yellow-500/20 rounded-t-lg flex items-center justify-center border border-yellow-400/50 mb-2">
+                      <Crown className="h-10 w-10 text-yellow-400" />
+                    </div>
+                    <div className="bg-slate-700/30 rounded-lg p-4 border border-yellow-400/30">
+                      <p className="text-lg font-bold text-slate-50">{branchPerformance[0].branchName}</p>
+                      <p className="text-sm text-yellow-400">{branchPerformance[0].convertedLeads} conversions</p>
+                      <p className="text-xs text-slate-500">🏆 {branchPerformance[0].conversionRate.toFixed(1)}% rate</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3rd Place */}
+                {branchPerformance[2] && (
+                  <div className="text-center">
+                    <div className="w-20 h-12 bg-orange-500/20 rounded-t-lg flex items-center justify-center border border-yellow-400/30 mb-2">
+                      <Award className="h-6 w-6 text-orange-400" />
+                    </div>
+                    <div className="bg-slate-700/30 rounded-lg p-3 border border-yellow-400/20">
+                      <p className="text-sm font-semibold text-slate-50">{branchPerformance[2].branchName}</p>
+                      <p className="text-xs text-slate-400">{branchPerformance[2].convertedLeads} conversions</p>
+                      <p className="text-xs text-orange-300">{branchPerformance[2].conversionRate.toFixed(1)}% rate</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* All Branch Performance Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {branchPerformance.map((performance) => (
+                <BranchPerformanceCard 
+                  key={performance.branchName} 
+                  performance={performance}
+                  onExportSheet={handleExportPerformanceSheet}
+                  onSendEmails={handleSendPerformanceEmails}
+                />
               ))}
             </div>
           </div>
