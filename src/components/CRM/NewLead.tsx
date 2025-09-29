@@ -341,8 +341,10 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
                         className="ml-2 text-blue-600 hover:text-blue-800"
                       >
                         ×
-                      </button>
-                    </span>
+                  {availableAgents.map(agent => (
+                    <option key={`${agent.firstName} ${agent.lastName}`} value={`${agent.firstName} ${agent.lastName}`}>
+                      {agent.firstName} {agent.lastName}
+                    </option>
                   ))}
                 </div>
               </div>
