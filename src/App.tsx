@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { LoginPage } from './components/Auth/LoginPage';
 import { LogoutPage } from './components/Auth/LogoutPage';
@@ -145,52 +144,50 @@ function App() {
   };
 
   return (
-    <AuthProvider>
-      <div className="min-h-screen bg-gray-50">
-        <Toaster position="top-right" />
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/logout" element={<LogoutPage />} />
-          
-          {/* Protected Routes */}
-          <Route path="/*" element={
-            <ProtectedRoute>
-              <MainLayout
-                title={pageConfig.title}
-                subtitle={pageConfig.subtitle}
-              >
-                <React.Suspense fallback={
-                  <div className="flex items-center justify-center h-96">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-4"></div>
-                      <p className="text-slate-400">Loading...</p>
-                    </div>
+    <div className="min-h-screen bg-gray-50">
+      <Toaster position="top-right" />
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/logout" element={<LogoutPage />} />
+        
+        {/* Protected Routes */}
+        <Route path="/*" element={
+          <ProtectedRoute>
+            <MainLayout
+              title={pageConfig.title}
+              subtitle={pageConfig.subtitle}
+            >
+              <React.Suspense fallback={
+                <div className="flex items-center justify-center h-96">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-4"></div>
+                    <p className="text-slate-400">Loading...</p>
                   </div>
-                }>
-                  <Routes>
-                    {/* Root redirect */}
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                    
-                    {/* Dynamic routes from registry */}
-                    {routes.map(route => (
-                      <Route 
-                        key={route.key} 
-                        path={route.path} 
-                        element={route.element} 
-                      />
-                    ))}
-                    
-                    {/* Catch all route */}
-                    <Route path="*" element={<NotFoundRedirect />} />
-                  </Routes>
-                </React.Suspense>
-              </MainLayout>
-            </ProtectedRoute>
-          } />
-        </Routes>
-      </div>
-    </AuthProvider>
+                </div>
+              }>
+                <Routes>
+                  {/* Root redirect */}
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  
+                  {/* Dynamic routes from registry */}
+                  {routes.map(route => (
+                    <Route 
+                      key={route.key} 
+                      path={route.path} 
+                      element={route.element} 
+                    />
+                  ))}
+                  
+                  {/* Catch all route */}
+                  <Route path="*" element={<NotFoundRedirect />} />
+                </Routes>
+              </React.Suspense>
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+      </Routes>
+    </div>
   );
 }
 
