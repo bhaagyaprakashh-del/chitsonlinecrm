@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Filter, Calendar, Clock, User, Tag, AlertTriangle, Star, MoreVertical, CreditCard as Edit, Trash2, Eye, Settings, Users, Target, TrendingUp, CheckCircle, XCircle, Save, X, Shield, Zap, Crown } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, Clock, User, Tag, AlertTriangle, Star, MoreVertical, CreditCard as Edit, Trash2, Eye, Settings, Users, Target, TrendingUp, CheckCircle, XCircle, Save, X, Shield, Zap, Crown, CheckSquare } from 'lucide-react';
 import { SLAPolicy, EscalationRule } from '../../types/tasks';
 import { loadSLAPolicies, saveSLAPolicies } from '../../data/tasks.mock';
 import { getEmployees } from '../../data/employees.mock';
