@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, DollarSign, User, CreditCard, FileText, Clock, Award, Target, TrendingUp, Users, CheckCircle, AlertTriangle, Download, Upload, Star, Briefcase, Shield, Building, Activity, Eye, Send, MessageSquare, Save, X, Key, Lock, EyeOff, Search, Filter, MoreVertical, Trash2 } from 'lucide-react';
+import { ArrowLeft, CreditCard as Edit, Mail, Phone, MapPin, Calendar, DollarSign, User, CreditCard, FileText, Clock, Award, Target, TrendingUp, Users, CheckCircle, AlertTriangle, Download, Upload, Star, Briefcase, Shield, Building, Activity, Eye, Send, MessageSquare, Save, X, Key, Lock, EyeOff, Search, Filter, MoreVertical, Trash2 } from 'lucide-react';
 import { Employee } from '../../types/hrms';
 import { getEmployees, saveEmployees, updateEmployee, deleteEmployee, initializeEmployeesData } from '../../data/employees.mock';
 import { getBranches, initializeBranchesData } from '../../data/branches.mock';
