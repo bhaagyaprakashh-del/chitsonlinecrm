@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Save, User, Building, Phone, Mail, DollarSign, Tag } from 'lucide-react';
+import { ArrowLeft, Save, User, Building, Phone, Mail, DollarSign, Tag, MapPin, Users, Briefcase } from 'lucide-react';
 import { Lead } from '../../types/crm';
 import toast from 'react-hot-toast';
 import { loadLeads, addLead } from '../../data/leads.mock';
+import { getActiveBranches, getBranchByName } from '../../data/branches.mock';
+import { getAgentsByBranch } from '../../data/agents.mock';
+import { getEmployeesByBranch } from '../../data/employees.mock';
 
 interface NewLeadProps {
   onBack: () => void;
@@ -20,14 +23,41 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
     priority: 'medium' as Lead['priority'],
     value: 0,
     assignedTo: '',
+    assignedToEmployee: '',
+    branch: '',
     notes: '',
     tags: [] as string[]
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [newTag, setNewTag] = useState('');
+  const [branches] = useState(() => getActiveBranches());
+  const [availableAgents, setAvailableAgents] = useState<any[]>([]);
+  const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
 
-  const agents = ['Priya Sharma', 'Karthik Nair', 'Vikram Singh', 'Suresh Kumar', 'Anjali Sharma'];
+  // Update agents and employees when branch changes
+  React.useEffect(() => {
+    if (formData.branch) {
+      const branchAgents = getAgentsByBranch(formData.branch);
+      const branchEmployees = getEmployeesByBranch(formData.branch);
+      setAvailableAgents(branchAgents);
+      setAvailableEmployees(branchEmployees);
+      
+      // Reset assignments if current selections are not in the new branch
+      const currentAgent = branchAgents.find(a => `${a.firstName} ${a.lastName}` === formData.assignedTo);
+      const currentEmployee = branchEmployees.find(e => `${e.firstName} ${e.lastName}` === formData.assignedToEmployee);
+      
+      if (!currentAgent) {
+        setFormData(prev => ({ ...prev, assignedTo: '' }));
+      }
+      if (!currentEmployee) {
+        setFormData(prev => ({ ...prev, assignedToEmployee: '' }));
+      }
+    } else {
+      setAvailableAgents([]);
+      setAvailableEmployees([]);
+    }
+  }, [formData.branch]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -60,7 +90,10 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
     if (!formData.email.trim()) newErrors.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Please enter a valid email';
     if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
-    if (!formData.assignedTo) newErrors.assignedTo = 'Please assign to an agent';
+    if (!formData.branch) newErrors.branch = 'Please select a branch';
+    if (!formData.assignedTo && !formData.assignedToEmployee) {
+      newErrors.assignedTo = 'Please assign to either an agent or employee';
+    }
     if (formData.value <= 0) newErrors.value = 'Lead value must be greater than 0';
 
     setErrors(newErrors);
@@ -79,7 +112,12 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
         id: Date.now().toString(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        notes: formData.notes ? [formData.notes] : [],
+        notes: formData.notes ? [
+          formData.notes,
+          `Branch: ${formData.branch}`,
+          formData.assignedTo ? `Assigned Agent: ${formData.assignedTo}` : '',
+          formData.assignedToEmployee ? `Assigned Employee: ${formData.assignedToEmployee}` : ''
+        ].filter(Boolean) : [],
         nextFollowUp: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
       };
       
@@ -309,6 +347,75 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
                 </div>
               </div>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-50 mb-2">
+                <Users className="inline h-4 w-4 mr-1" />
+                Assign to Agent
+              </label>
+                <MapPin className="inline h-4 w-4 mr-1" />
+                Branch *
+              </label>
+              <select
+                value={formData.branch}
+                onChange={(e) => handleInputChange('branch', e.target.value)}
+                className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+                disabled={!formData.branch}
+              >
+                <option value="">Select Branch</option>
+                {availableAgents.map(agent => (
+                  <option key={agent.id} value={`${agent.firstName} ${agent.lastName}`}>
+                    {agent.firstName} {agent.lastName} ({agent.designation})
+                  </option>
+                ))}
+              </select>
+              {!formData.branch && (
+                <p className="mt-1 text-xs text-slate-400">Select a branch first to see available agents</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-50 mb-2">
+                <Briefcase className="inline h-4 w-4 mr-1" />
+                Assign to Employee
+              </label>
+              <select
+                value={formData.assignedToEmployee}
+                onChange={(e) => handleInputChange('assignedToEmployee', e.target.value)}
+                className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+                disabled={!formData.branch}
+              >
+                <option value="">Select Employee</option>
+                {availableEmployees.map(employee => (
+                  <option key={employee.id} value={`${employee.firstName} ${employee.lastName}`}>
+                    {employee.firstName} {employee.lastName} ({employee.designation})
+                  </option>
+                ))}
+              </select>
+              {!formData.branch && (
+                <p className="mt-1 text-xs text-slate-400">Select a branch first to see available employees</p>
+              )}
+            </div>
+
+          {errors.assignedTo && (
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+              <p className="text-red-400 text-sm">{errors.assignedTo}</p>
+            </div>
+          )}
+
+          {/* Branch Summary */}
+          {formData.branch && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+              <h4 className="text-sm font-medium text-blue-900 mb-2">Branch Information</h4>
+              <div className="text-sm text-blue-800 space-y-1">
+                <p>Selected Branch: {formData.branch}</p>
+                <p>Available Agents: {availableAgents.length}</p>
+                <p>Available Employees: {availableEmployees.length}</p>
+                {formData.assignedTo && <p>Assigned Agent: {formData.assignedTo}</p>}
+                {formData.assignedToEmployee && <p>Assigned Employee: {formData.assignedToEmployee}</p>}
+              </div>
+            </div>
+          )}
 
             <div className="flex justify-end space-x-3 mt-8 pt-6 border-t border-yellow-400/30">
               <button

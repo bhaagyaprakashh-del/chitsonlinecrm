@@ -25,6 +25,7 @@ export interface Employee {
   designation: string;
   department: string;
   branch: string;
+  branchId?: string;
   joiningDate: string;
   confirmationDate?: string;
   probationPeriod: number; // in months

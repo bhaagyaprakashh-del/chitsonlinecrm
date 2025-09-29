@@ -10,6 +10,8 @@ export interface Lead {
   priority: 'low' | 'medium' | 'high';
   value: number;
   assignedTo?: string;
+  assignedToEmployee?: string;
+  branch?: string;
   createdAt: string;
   updatedAt: string;
   notes: string[];

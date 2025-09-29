@@ -24,6 +24,7 @@ export interface Agent {
   designation: string;
   department: string;
   branch: string;
+  branchId?: string;
   joiningDate: string;
   employmentType: 'permanent' | 'contract' | 'freelance' | 'commission-only';
   workLocation: 'field' | 'office' | 'hybrid';
