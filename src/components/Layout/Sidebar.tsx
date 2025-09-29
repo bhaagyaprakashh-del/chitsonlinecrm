@@ -240,11 +240,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className={`${isCollapsed ? 'p-3' : 'p-6'} border-b border-yellow-400/30 transition-all duration-300`}>
           <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} mb-4`}>
             <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center border border-yellow-400/40 shadow-lg">
-              <span className="text-slate-50 text-lg font-semibold">P</span>
+              <span className="text-slate-50 text-lg font-semibold">
+                {user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'U'}
+              </span>
             </div>
             {!isCollapsed && (
               <div className="transition-opacity duration-300">
-                <h3 className="text-slate-50 font-semibold">Prakashh</h3>
+                <h3 className="text-slate-50 font-semibold">{user?.name || 'User'}</h3>
                 <div className="flex items-center space-x-2">
                   <div className="h-2 w-2 bg-emerald-400 rounded-full shadow-sm"></div>
                   <span className="text-emerald-400 text-sm">Online</span>

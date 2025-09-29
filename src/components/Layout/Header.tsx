@@ -228,7 +228,9 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ isOpen, onClose }) =>
                 />
               ) : (
                 <div className="h-16 w-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center border-2 border-yellow-400/40">
-                  <span className="text-slate-50 text-xl font-semibold">P</span>
+                  <span className="text-slate-50 text-xl font-semibold">
+                    {user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'U'}
+                  </span>
                 </div>
               )}
               <button
@@ -247,7 +249,7 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ isOpen, onClose }) =>
             </div>
             <div>
               <h3 className="text-slate-50 font-semibold text-lg">{user?.name || 'User'}</h3>
-              <p className="text-slate-300 text-sm">{user?.role || 'Role'}</p>
+              <p className="text-slate-300 text-sm">{user?.role || 'User'}</p>
               <p className="text-slate-400 text-xs">{user?.email || 'email@example.com'}</p>
             </div>
           </div>
@@ -554,7 +556,9 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, onToggleSidebar
               className="flex items-center space-x-2 p-2 text-slate-300 hover:text-slate-50 hover:bg-slate-700/50 rounded-lg transition-all"
             >
               <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center">
-                <span className="text-slate-50 text-sm font-semibold">P</span>
+                <span className="text-slate-50 text-sm font-semibold">
+                  {user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'U'}
+                </span>
               </div>
               <ChevronDown className={`h-4 w-4 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
             </button>
