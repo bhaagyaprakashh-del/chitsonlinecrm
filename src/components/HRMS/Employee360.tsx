@@ -751,14 +751,6 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
 
       default:
         return null;
-    }
-  };
-
-  return (
-    <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-yellow-400/30 flex-shrink-0">
-        <div className="flex items-center space-x-4">
           <button
             onClick={onBack}
             className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-700/50 rounded-lg transition-all"
