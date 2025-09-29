@@ -642,7 +642,7 @@ const KPICard: React.FC<{
   );
 });
 
-export const EmployeeKPI: React.FC = () => {
+export const EmployeeKPIComponent: React.FC = () => {
   const [kpis, setKpis] = useState<EmployeeKPI[]>(() => {
     initializeKPIData();
     return getEmployeeKPIs();
