@@ -578,15 +578,15 @@ const SubscriberCard: React.FC<{ subscriber: Subscriber }> = React.memo(({ subsc
         <p className="text-xs text-slate-500 mb-2">Payment History:</p>
         <div className="grid grid-cols-3 gap-2 text-center">
           <div>
-            <p className="text-sm font-semibold text-green-400">{(subscriber.paymentHistory || { onTimePayments: 0 }).onTimePayments}</p>
+            <p className="text-sm font-semibold text-green-400">{subscriber.paymentHistory?.onTimePayments || 0}</p>
             <p className="text-xs text-slate-500">On Time</p>
           </div>
           <div>
-            <p className="text-sm font-semibold text-yellow-400">{(subscriber.paymentHistory || { latePayments: 0 }).latePayments}</p>
+            <p className="text-sm font-semibold text-yellow-400">{subscriber.paymentHistory?.latePayments || 0}</p>
             <p className="text-xs text-slate-500">Late</p>
           </div>
           <div>
-            <p className="text-sm font-semibold text-red-400">{(subscriber.paymentHistory || { missedPayments: 0 }).missedPayments}</p>
+            <p className="text-sm font-semibold text-red-400">{subscriber.paymentHistory?.missedPayments || 0}</p>
             <p className="text-xs text-slate-500">Missed</p>
           </div>
         </div>
