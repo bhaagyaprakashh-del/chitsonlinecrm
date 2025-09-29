@@ -196,6 +196,21 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
 
   const handleSubmit = () => {
     if (validateStep(currentStep)) {
+      console.log('NewEmployee: Starting employee creation process...');
+      console.log('NewEmployee: Form data:', formData);
+      console.log('NewEmployee: User account data:', userAccountData);
+      
+      // Validate required fields one more time
+      if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+      
+      if (!userAccountData.username || !userAccountData.password) {
+        toast.error('Please provide user account credentials');
+        return;
+      }
+      
       const employeeData = {
         ...formData,
         employeeId: `EMP${String(Date.now()).slice(-3)}`,
@@ -204,55 +219,60 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
         createdBy: 'hr@ramnirmalchits.com',
         updatedAt: new Date().toISOString(),
         updatedBy: 'hr@ramnirmalchits.com'
-      };
+      } as Employee;
       
       console.log('NewEmployee: Creating employee:', employeeData);
       
-      // Get existing employees and add new one
-      const existingEmployees = getEmployees();
-      console.log('NewEmployee: Existing employees before addition:', existingEmployees.length);
-      const updatedEmployees = [...existingEmployees, employeeData];
-      console.log('NewEmployee: Total employees after addition:', updatedEmployees.length);
-      console.log('NewEmployee: New employee being added:', `${employeeData.firstName} ${employeeData.lastName}`);
-      saveEmployees(updatedEmployees);
-      
-      // Verify the save worked
-      const verifyEmployees = getEmployees();
-      console.log('NewEmployee: Verification - employees in storage:', verifyEmployees.length);
-      console.log('NewEmployee: Verification - employee names:', verifyEmployees.map(e => `${e.firstName} ${e.lastName}`));
-      
-      // Create user account if requested
-      const userData = {
-        id: `user_${Date.now()}`,
-        name: `${formData.firstName} ${formData.lastName}`,
-        email: formData.email,
-        phone: formData.phone,
-        category: userAccountData.role,
-        role: formData.designation,
-        status: 'Active',
-        department: formData.department,
-        branch: formData.branch,
-        joiningDate: formData.joiningDate,
-        lastLogin: null,
-        username: userAccountData.username,
-        password: userAccountData.password,
-        permissions: rolePermissions[userAccountData.role] || [],
-        employeeId: employeeData.employeeId
-      };
-      
-      console.log('NewEmployee: Creating user account:', userData);
-      
-      // Save to users storage  
-      const existingUsers = JSON.parse(localStorage.getItem('users_data') || '[]');
-      const updatedUsers = [...existingUsers, userData];
-      localStorage.setItem('users_data', JSON.stringify(updatedUsers));
-      window.dispatchEvent(new CustomEvent('usersUpdated'));
-      
-      toast.success(`Employee and user account created successfully!`);
-      
-      console.log('NewEmployee: All data saved, triggering navigation...');
-      
-      onSave(employeeData);
+      try {
+        // Save employee data using the centralized function
+        const result = addEmployee(employeeData);
+        console.log('NewEmployee: Employee saved successfully, total employees:', result.length);
+        
+        // Create user account
+        const userData = {
+          id: `user_${Date.now()}`,
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          phone: formData.phone,
+          category: userAccountData.role,
+          role: formData.designation,
+          status: 'Active',
+          department: formData.department,
+          branch: formData.branch,
+          joiningDate: formData.joiningDate,
+          lastLogin: null,
+          username: userAccountData.username,
+          password: userAccountData.password,
+          permissions: rolePermissions[userAccountData.role] || [],
+          employeeId: employeeData.employeeId
+        };
+        
+        console.log('NewEmployee: Creating user account:', userData);
+        
+        // Save to users storage  
+        const existingUsers = JSON.parse(localStorage.getItem('users_data') || '[]');
+        const updatedUsers = [...existingUsers, userData];
+        localStorage.setItem('users_data', JSON.stringify(updatedUsers));
+        window.dispatchEvent(new CustomEvent('usersUpdated'));
+        
+        // Trigger multiple events to ensure all pages update
+        window.dispatchEvent(new CustomEvent('employeesUpdated'));
+        window.dispatchEvent(new CustomEvent('employeeDataChanged'));
+        window.dispatchEvent(new CustomEvent('storage'));
+        
+        toast.success(`Employee "${employeeData.firstName} ${employeeData.lastName}" and user account created successfully!`);
+        
+        console.log('NewEmployee: All data saved, triggering navigation...');
+        
+        // Navigate back to directory after successful creation
+        setTimeout(() => {
+          onSave(employeeData);
+        }, 1000);
+        
+      } catch (error) {
+        console.error('NewEmployee: Error creating employee:', error);
+        toast.error('Failed to create employee. Please try again.');
+      }
     }
   };
 

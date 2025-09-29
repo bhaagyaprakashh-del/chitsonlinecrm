@@ -260,6 +260,23 @@ export const EmployeeDirectory: React.FC = () => {
     setEmployees(freshEmployees);
     toast.success(`Refreshed: ${freshEmployees.length} employees loaded`);
   };
+  
+  // Manual refresh function to check localStorage directly
+  const handleCheckStorage = () => {
+    const saved = localStorage.getItem('employees_data');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        console.log('EmployeeDirectory: Direct localStorage check:', parsed.length);
+        console.log('EmployeeDirectory: Direct localStorage names:', parsed.map((e: any) => `${e.firstName} ${e.lastName}`));
+        toast.success(`Storage check: ${parsed.length} employees in localStorage`);
+      } catch (error) {
+        toast.error('Error reading localStorage');
+      }
+    } else {
+      toast.error('No employee data in localStorage');
+    }
+  };
 
   const filteredEmployees = useMemo(() => employees.filter(employee => {
     const matchesSearch = employee.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -378,6 +395,12 @@ export const EmployeeDirectory: React.FC = () => {
             className="inline-flex items-center px-4 py-2 border border-green-400/30 text-sm font-medium rounded-lg text-green-400 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm"
           >
             🔄 Force Refresh ({employees.length})
+          </button>
+          <button 
+            onClick={handleCheckStorage}
+            className="inline-flex items-center px-4 py-2 border border-blue-400/30 text-sm font-medium rounded-lg text-blue-400 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm"
+          >
+            🔍 Check Storage
           </button>
           <button className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm">
             <Upload className="h-4 w-4 mr-2" />

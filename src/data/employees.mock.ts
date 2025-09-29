@@ -418,9 +418,40 @@ export const initializeEmployeesData = () => {
 
 export const addEmployee = (employee: Employee) => {
   try {
-    const existingEmployees = getEmployees();
+    console.log('addEmployee: Adding new employee:', `${employee.firstName} ${employee.lastName}`);
+    
+    // Get current employees from localStorage only (to avoid sample duplication)
+    const saved = localStorage.getItem('employees_data');
+    let existingEmployees: Employee[] = [];
+    
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        existingEmployees = Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        console.error('addEmployee: Error parsing existing data:', error);
+        existingEmployees = [];
+      }
+    }
+    
+    console.log('addEmployee: Existing employees in storage:', existingEmployees.length);
+    
+    // Add new employee
     const updatedEmployees = [...existingEmployees, employee];
-    saveEmployees(updatedEmployees);
+    console.log('addEmployee: Total employees after addition:', updatedEmployees.length);
+    
+    // Save directly to localStorage
+    localStorage.setItem('employees_data', JSON.stringify(updatedEmployees));
+    console.log('addEmployee: Saved to localStorage successfully');
+    
+    // Dispatch events
+    window.dispatchEvent(new CustomEvent('employeesUpdated'));
+    window.dispatchEvent(new CustomEvent('employeeDataChanged'));
+    window.dispatchEvent(new CustomEvent('storage'));
+    console.log('addEmployee: Events dispatched');
+    
+    // Return the updated employees list
+    console.log('addEmployee: Returning updated employees:', updatedEmployees.length);
     return updatedEmployees;
   } catch (error) {
     console.error('Failed to add employee:', error);

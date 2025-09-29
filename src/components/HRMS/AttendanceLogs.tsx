@@ -276,6 +276,102 @@ const AttendanceCard: React.FC<{ record: AttendanceRecord }> = React.memo(({ rec
   );
 });
 
+// Generate realistic attendance records for employees
+const generateAttendanceRecords = (employees: Employee[]): AttendanceRecord[] => {
+  const records: AttendanceRecord[] = [];
+  const today = new Date();
+  
+  // Generate records for last 7 days
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    const dateString = date.toISOString().split('T')[0];
+    
+    employees.forEach((employee, empIndex) => {
+      // Skip weekends for some variety
+      if (date.getDay() === 0 || date.getDay() === 6) {
+        if (Math.random() > 0.3) return; // 30% chance of weekend work
+      }
+      
+      // Generate realistic attendance patterns
+      const isPresent = Math.random() > 0.1; // 90% attendance rate
+      const isOnLeave = Math.random() > 0.95; // 5% leave probability
+      const isHalfDay = Math.random() > 0.9; // 10% half day probability
+      
+      let status: AttendanceRecord['status'] = 'present';
+      let checkIn = '';
+      let checkOut = '';
+      let workHours = 0;
+      let overtimeHours = 0;
+      
+      if (isOnLeave) {
+        status = 'on-leave';
+      } else if (!isPresent) {
+        status = 'absent';
+      } else if (isHalfDay) {
+        status = 'half-day';
+        checkIn = '09:30';
+        checkOut = '13:30';
+        workHours = 3.5;
+      } else {
+        status = 'present';
+        // Random check-in between 8:30 and 9:30
+        const checkInHour = 8 + Math.random();
+        const checkInMinutes = Math.floor(checkInHour * 60);
+        checkIn = `${Math.floor(checkInMinutes / 60).toString().padStart(2, '0')}:${(checkInMinutes % 60).toString().padStart(2, '0')}`;
+        
+        // Random check-out between 17:30 and 19:00
+        const checkOutHour = 17.5 + Math.random() * 1.5;
+        const checkOutMinutes = Math.floor(checkOutHour * 60);
+        checkOut = `${Math.floor(checkOutMinutes / 60).toString().padStart(2, '0')}:${(checkOutMinutes % 60).toString().padStart(2, '0')}`;
+        
+        // Calculate work hours
+        const checkInTime = new Date(`2024-01-01T${checkIn}:00`);
+        const checkOutTime = new Date(`2024-01-01T${checkOut}:00`);
+        const totalMinutes = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60);
+        const breakTime = 45 + Math.random() * 30; // 45-75 minutes break
+        workHours = Math.round(((totalMinutes - breakTime) / 60) * 100) / 100;
+        
+        // Calculate overtime
+        if (workHours > 8) {
+          overtimeHours = Math.round((workHours - 8) * 100) / 100;
+        }
+      }
+      
+      const record: AttendanceRecord = {
+        id: `att_${employee.id}_${dateString}`,
+        employeeId: employee.id,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        date: dateString,
+        checkIn: checkIn || undefined,
+        checkOut: checkOut || undefined,
+        breakTime: status === 'present' || status === 'half-day' ? 45 + Math.random() * 30 : 0,
+        workHours,
+        overtimeHours,
+        status,
+        attendanceType: overtimeHours > 0 ? 'overtime' : 'regular',
+        location: employee.branch,
+        ipAddress: `192.168.${Math.floor(Math.random() * 10) + 1}.${Math.floor(Math.random() * 200) + 100}`,
+        deviceInfo: ['Mobile App - Android', 'QR Scanner - Kiosk', 'Web Portal - Chrome'][Math.floor(Math.random() * 3)],
+        qrCodeUsed: Math.random() > 0.2, // 80% QR code usage
+        kioskId: `KIOSK_${employee.branch?.replace(/\s+/g, '_').toUpperCase()}_01`,
+        approvalStatus: status === 'on-leave' || isHalfDay ? 'pending' : 'auto-approved',
+        approvedBy: status === 'on-leave' ? employee.reportingManager : undefined,
+        approvedAt: status === 'on-leave' ? new Date(date.getTime() - 24 * 60 * 60 * 1000).toISOString() : undefined,
+        isRegularized: isHalfDay,
+        regularizationReason: isHalfDay ? 'Medical appointment' : undefined,
+        regularizedBy: isHalfDay ? employee.reportingManager : undefined,
+        regularizedAt: isHalfDay ? new Date().toISOString() : undefined,
+        notes: status === 'on-leave' ? 'Approved leave' : isHalfDay ? 'Half day for medical appointment' : undefined
+      };
+      
+      records.push(record);
+    });
+  }
+  
+  return records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+};
+
 export const AttendanceLogs: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>(() => {
     initializeEmployeesData();
