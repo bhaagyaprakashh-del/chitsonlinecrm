@@ -1,7 +1,8 @@
-import { ArrowLeft, Edit, Save, X, Plus, User, CreditCard, Shield, Phone, MapPin, Mail, Building, Calendar, DollarSign, Users, Star, CheckCircle, XCircle, AlertTriangle, Clock, Award, Target, TrendingUp, Activity, Filter, Download, Upload, MoreVertical, Eye, Trash2, Key, Lock, EyeOff } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarSign, User, Shield, FileText, Activity, Search, Save, X, Eye, Trash2, Key, Lock, EyeOff } from 'lucide-react';
 import { Employee } from '../../types/hrms';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, DollarSign, User, CreditCard, FileText, Clock, Award, Target, TrendingUp, Users, CheckCircle, AlertTriangle, Download, Upload, Star, Briefcase, Shield, Building, Activity, Eye, Send, MessageSquare, Save, X, Key, Lock, EyeOff, Search, Filter, MoreVertical, Trash2 } from 'lucide-react';
+import { ArrowLeft, CreditCard as Edit, Mail, Phone, MapPin, Calendar, DollarSign, User, CreditCard, FileText, Clock, Award, Target, TrendingUp, Users, CheckCircle, AlertTriangle, Download, Upload, Star, Briefcase, Shield, Building, Activity, Eye, Send, MessageSquare, Save, X, Key, Lock, EyeOff, Search, Filter, MoreVertical, Trash2 } from 'lucide-react';
 import { getEmployees, saveEmployees, updateEmployee, deleteEmployee, initializeEmployeesData } from '../../data/employees.mock';
 import { getBranches } from '../../data/branches.mock';
 import { UserCategory } from '../../data/users.mock';
@@ -207,7 +208,8 @@ interface UserCredentials {
   permissions: string[];
   isActive: boolean;
 }
-const EmployeeTable: React.FC<{ 
+
+const EmployeeTable2: React.FC<{ 
   employees: Employee[]; 
   onEmployeeSelect: (employeeId: string) => void;
   selectedEmployeeId?: string;
@@ -467,6 +469,7 @@ const EditEmployeeForm: React.FC<{
     'Agents': ['dashboard.view', 'leads.view', 'leads.create'],
     'Subscribers': ['dashboard.view', 'profile.view']
   };
+
   const handleInputChange = (field: keyof Employee, value: any) => {
     setFormData(prev => ({
       ...prev,
@@ -931,6 +934,7 @@ const EditEmployeeForm: React.FC<{
             </div>
           )}
         </div>
+
         <div>
           <label className="block text-sm font-medium text-slate-50 mb-2">Address</label>
           <textarea
@@ -1010,7 +1014,6 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
     initializeEmployeesData();
     const loadedEmployees = getEmployees();
     console.log('Employee360: useEffect - Loading employees...');
-    const loadedEmployees = getEmployees();
     console.log('Employee360: useEffect - Loaded employees:', loadedEmployees.length);
     console.log('Employee360: useEffect - Employee names:', loadedEmployees.map(e => `${e.firstName} ${e.lastName}`));
     setEmployees(loadedEmployees);
@@ -1019,7 +1022,7 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
     const foundEmployee = loadedEmployees.find(e => e.id === actualEmployeeId || e.employeeId === actualEmployeeId);
     if (foundEmployee) {
       setSelectedEmployee(foundEmployee);
-        console.log('Employee360: Found employee from URL:', `${foundEmployee.firstName} ${foundEmployee.lastName}`);
+      console.log('Employee360: Found employee from URL:', `${foundEmployee.firstName} ${foundEmployee.lastName}`);
       setSelectedEmployeeId(foundEmployee.id);
       if (actualEmployeeId && !shouldEdit) {
         setActiveTab('overview');
@@ -1033,6 +1036,22 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
 
   // Listen for storage changes
   React.useEffect(() => {
+    const handleStorageChange = () => {
+      console.log('Employee360: Storage changed, reloading employees...');
+      const updatedEmployees = getEmployees();
+      console.log('Employee360: Storage update - employees count:', updatedEmployees.length);
+      console.log('Employee360: Storage update - employee names:', updatedEmployees.map(e => `${e.firstName} ${e.lastName}`));
+      setEmployees(updatedEmployees);
+      
+      if (selectedEmployeeId) {
+        const updatedEmployee = updatedEmployees.find(e => e.id === selectedEmployeeId);
+        if (updatedEmployee) {
+          console.log('Employee360: Updated selected employee:', `${updatedEmployee.firstName} ${updatedEmployee.lastName}`);
+          setSelectedEmployee(updatedEmployee);
+        }
+      }
+    };
+
     const handleEmployeeUpdate = () => {
       console.log('Employee360: Storage changed, reloading employees...');
       const updatedEmployees = getEmployees();
@@ -1185,7 +1204,7 @@ Ramnirmalchits Financial Services`);
   };
 
   const tabs = [
-    { id: 'table', name: 'Employee Directory', icon: Users },
+    { id: 'table', name: 'All Employees', icon: User },
     { id: 'overview', name: 'Overview', icon: Eye },
     { id: 'compensation', name: 'Compensation', icon: DollarSign },
     { id: 'documents', name: 'Documents', icon: FileText },
@@ -1201,6 +1220,7 @@ Ramnirmalchits Financial Services`);
             onEmployeeSelect={handleEmployeeSelect}
             selectedEmployeeId={selectedEmployeeId}
           />
+        );
       case 'overview':
         if (!selectedEmployee) {
           return (
@@ -1548,11 +1568,6 @@ Ramnirmalchits Financial Services`);
               >
                 <Icon className="h-4 w-4 mr-2" />
                 {tab.name}
-                {tab.id === 'table' && (
-                  <span className="ml-2 bg-slate-700/50 text-slate-300 px-2 py-1 rounded-full text-xs">
-                    {employees.length}
-                  </span>
-                )}
                 {tab.id === 'table' && (
                   <span className="ml-2 bg-slate-700/50 text-slate-300 px-2 py-1 rounded-full text-xs">
                     {employees.length}
