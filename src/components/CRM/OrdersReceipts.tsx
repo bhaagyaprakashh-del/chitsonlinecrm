@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Download, FileText, DollarSign, Calendar, CheckCircle, Clock, Target, X, Save, User, Building, Phone, Mail, CreditCard, Eye, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Download, FileText, DollarSign, Calendar, CheckCircle, Clock, Target, X, Save, User, Building, Phone, Mail, CreditCard, Eye, CreditCard as Edit, Trash2 } from 'lucide-react';
 import { loadLeads } from '../../data/leads.mock';
 import toast from 'react-hot-toast';
 
