@@ -3,6 +3,7 @@ import { TrendingUp, Award, Target, DollarSign, Users, Calendar, BarChart3, PieC
 import { loadLeads, updateLead } from '../../data/leads.mock';
 import { Lead } from '../../types/crm';
 import toast from 'react-hot-toast';
+import { Copy } from 'lucide-react';
 
 interface ConvertedLead extends Lead {
   conversionDate: string;
