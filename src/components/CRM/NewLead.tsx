@@ -348,27 +348,6 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-50 mb-2">
-                <Users className="inline h-4 w-4 mr-1" />
-                Assign to Agent
-              </label>
-                <Users className="inline h-4 w-4 mr-1" />
-                Assign to Agent
-              </label>
-              <select
-                value={formData.assignedTo}
-                onChange={(e) => handleInputChange('assignedTo', e.target.value)}
-                className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
-              >
-                <option value="">Select Agent</option>
-                {agents.map(agent => (
-                  <option key={agent} value={agent}>{agent}</option>
-                  </option>
-                ))}
-              </select>
-            </div>
-
             <div className="flex justify-end space-x-3 mt-8 pt-6 border-t border-yellow-400/30">
               <button
                 type="button"
