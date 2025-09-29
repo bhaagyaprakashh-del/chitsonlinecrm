@@ -1,89 +1,16 @@
 import React, { useState } from 'react';
 import { MapPin, Plus, Search, Filter, Building2, Phone, Mail, Users, CreditCard as Edit3, Trash2 } from 'lucide-react';
-
-interface Branch {
-  id: string;
-  name: string;
-  code: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  phone: string;
-  email: string;
-  manager: string;
-  employeeCount: number;
-  status: 'active' | 'inactive';
-  type: 'head_office' | 'branch' | 'sub_branch';
-}
+import { getBranches, initializeBranchesData } from '../../data/branches.mock';
 
 export const Branches: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [filterType, setFilterType] = useState<'all' | 'head_office' | 'branch' | 'sub_branch'>('all');
 
-  const [branches] = useState<Branch[]>([
-    {
-      id: '1',
-      name: 'Head Office',
-      code: 'HO001',
-      address: '123 Business District, Financial Hub',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      pincode: '400001',
-      phone: '+91 98765 43210',
-      email: 'headoffice@chitfund.com',
-      manager: 'Rajesh Kumar',
-      employeeCount: 25,
-      status: 'active',
-      type: 'head_office'
-    },
-    {
-      id: '2',
-      name: 'Andheri Branch',
-      code: 'BR002',
-      address: '456 Andheri West, Near Metro Station',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      pincode: '400058',
-      phone: '+91 98765 43211',
-      email: 'andheri@chitfund.com',
-      manager: 'Priya Sharma',
-      employeeCount: 12,
-      status: 'active',
-      type: 'branch'
-    },
-    {
-      id: '3',
-      name: 'Pune Branch',
-      code: 'BR003',
-      address: '789 FC Road, Shivajinagar',
-      city: 'Pune',
-      state: 'Maharashtra',
-      pincode: '411005',
-      phone: '+91 98765 43212',
-      email: 'pune@chitfund.com',
-      manager: 'Amit Patel',
-      employeeCount: 8,
-      status: 'active',
-      type: 'branch'
-    },
-    {
-      id: '4',
-      name: 'Nashik Sub-Branch',
-      code: 'SB004',
-      address: '321 College Road, Nashik',
-      city: 'Nashik',
-      state: 'Maharashtra',
-      pincode: '422005',
-      phone: '+91 98765 43213',
-      email: 'nashik@chitfund.com',
-      manager: 'Sunita Joshi',
-      employeeCount: 5,
-      status: 'inactive',
-      type: 'sub_branch'
-    }
-  ]);
+  const [branches] = useState(() => {
+    initializeBranchesData();
+    return getBranches();
+  });
 
   const filteredBranches = branches.filter(branch => {
     const matchesSearch = branch.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
