@@ -409,6 +409,7 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({ isOpen, searchTerm, onC
 };
 
 export const Header: React.FC<HeaderProps> = ({ title, subtitle, onToggleSidebar }) => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isProfileOpen, setIsProfileOpen] = useState(false);
