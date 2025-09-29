@@ -104,6 +104,7 @@ export const navigation: NavigationItem[] = [
       { id: 'hrms-employee-360', name: 'Employee 360', icon: Eye },
       { id: 'hrms-attendance', name: 'Attendance Logs & Approvals', icon: CheckSquare },
       { id: 'hrms-payroll', name: 'Payroll Runs & Payslips', icon: DollarSign },
+      { id: 'hrms-kpi', name: 'Employee KPI', icon: Target },
       { id: 'hrms-reports', name: 'Reports', icon: BarChart3 }
     ]
   },

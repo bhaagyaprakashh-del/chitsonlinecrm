@@ -383,6 +383,13 @@ export const routes: AppRoute[] = [
     element: <HRMSReports />, 
     parent: "hrms" 
   },
+  { 
+    path: "/hrms-kpi", 
+    key: "hrms.kpi", 
+    title: "Employee KPI", 
+    element: React.lazy(() => import('../components/HRMS/EmployeeKPI').then(module => ({ default: module.EmployeeKPI }))), 
+    parent: "hrms" 
+  },
 
   // Reports Hub
   { 

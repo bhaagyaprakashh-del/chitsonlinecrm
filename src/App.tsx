@@ -111,6 +111,7 @@ function App() {
       'hrms-employee-360': { title: 'Employee 360', subtitle: 'Complete employee profile with attendance, payroll, and performance data' },
       'hrms-attendance': { title: 'Attendance Logs & Approvals', subtitle: 'QR code based attendance system with automated tracking and approval workflows' },
       'hrms-payroll': { title: 'Payroll Runs & Payslips', subtitle: 'Process payroll, generate payslips, and manage salary components' },
+      'hrms-kpi': { title: 'Employee KPI', subtitle: 'Manage employee targets, track performance, and calculate incentives with payroll integration' },
       'hrms-reports': { title: 'HRMS Reports', subtitle: 'Comprehensive HR analytics and reporting dashboard' },
       'agents-directory': { title: 'Agent Directory (List)', subtitle: 'Comprehensive agent management with performance tracking and territory management' },
       'agents-add': { title: 'Add New Agent', subtitle: 'Create new agent profile with territory and target assignments' },
