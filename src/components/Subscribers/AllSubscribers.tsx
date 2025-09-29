@@ -578,15 +578,15 @@ const SubscriberCard: React.FC<{ subscriber: Subscriber }> = React.memo(({ subsc
         <p className="text-xs text-slate-500 mb-2">Payment History:</p>
         <div className="grid grid-cols-3 gap-2 text-center">
           <div>
-            <p className="text-sm font-semibold text-green-400">{subscriber.paymentHistory?.onTimePayments || 0}</p>
+            <p className="text-sm font-semibold text-green-400">{subscriber.paymentHistory?.onTimePayments ?? 0}</p>
             <p className="text-xs text-slate-500">On Time</p>
           </div>
           <div>
-            <p className="text-sm font-semibold text-yellow-400">{subscriber.paymentHistory?.latePayments || 0}</p>
+            <p className="text-sm font-semibold text-yellow-400">{subscriber.paymentHistory?.latePayments ?? 0}</p>
             <p className="text-xs text-slate-500">Late</p>
           </div>
           <div>
-            <p className="text-sm font-semibold text-red-400">{subscriber.paymentHistory?.missedPayments || 0}</p>
+            <p className="text-sm font-semibold text-red-400">{subscriber.paymentHistory?.missedPayments ?? 0}</p>
             <p className="text-xs text-slate-500">Missed</p>
           </div>
         </div>
@@ -753,7 +753,16 @@ export const AllSubscribers: React.FC = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return Array.isArray(parsed) && parsed.length > 0 ? [...sampleSubscribers, ...parsed] : sampleSubscribers;
+        const validParsed = Array.isArray(parsed) ? parsed.map(sub => ({
+          ...sub,
+          paymentHistory: sub.paymentHistory || {
+            onTimePayments: 0,
+            latePayments: 0,
+            missedPayments: 0,
+            averageDelayDays: 0
+          }
+        })) : [];
+        return validParsed.length > 0 ? [...sampleSubscribers, ...validParsed] : sampleSubscribers;
       } catch (error) {
         console.error('Failed to load subscribers:', error);
         return sampleSubscribers;
@@ -777,8 +786,17 @@ export const AllSubscribers: React.FC = () => {
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
-            setSubscribers([...sampleSubscribers, ...parsed]);
-            console.log('Subscribers: Updated subscribers count:', sampleSubscribers.length + parsed.length);
+            const validParsed = parsed.map(sub => ({
+              ...sub,
+              paymentHistory: sub.paymentHistory || {
+                onTimePayments: 0,
+                latePayments: 0,
+                missedPayments: 0,
+                averageDelayDays: 0
+              }
+            }));
+            setSubscribers([...sampleSubscribers, ...validParsed]);
+            console.log('Subscribers: Updated subscribers count:', sampleSubscribers.length + validParsed.length);
           }
         } catch (error) {
           console.error('Failed to reload subscribers:', error);
