@@ -3,7 +3,7 @@ import { ArrowLeft, Save, User, Building, Phone, Mail, DollarSign, Tag, MapPin, 
 import { Lead } from '../../types/crm';
 import toast from 'react-hot-toast';
 import { loadLeads, addLead } from '../../data/leads.mock';
-import { getActiveBranches, getBranchByName } from '../../data/branches.mock';
+import { getActiveBranches } from '../../data/branches.mock';
 import { getAgentsByBranch } from '../../data/agents.mock';
 import { getEmployeesByBranch } from '../../data/employees.mock';
 
@@ -34,8 +34,6 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
   const [branches] = useState(() => getActiveBranches());
   const [availableAgents, setAvailableAgents] = useState<any[]>([]);
   const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
-
-  const agents = ['Priya Sharma', 'Karthik Nair', 'Vikram Singh', 'Suresh Kumar', 'Anjali Sharma'];
 
   // Update agents and employees when branch changes
   React.useEffect(() => {
@@ -266,6 +264,72 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-50 mb-2">
+                    <MapPin className="inline h-4 w-4 mr-1" />
+                    Branch *
+                  </label>
+                  <select
+                    value={formData.branch}
+                    onChange={(e) => handleInputChange('branch', e.target.value)}
+                    className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                      errors.branch ? 'border-red-500' : 'border-yellow-400/30'
+                    }`}
+                  >
+                    <option value="">Select Branch</option>
+                    {branches.map(branch => (
+                      <option key={branch.id} value={branch.name}>{branch.name}</option>
+                    ))}
+                  </select>
+                  {errors.branch && <p className="mt-1 text-sm text-red-400">{errors.branch}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-50 mb-2">
+                    <Users className="inline h-4 w-4 mr-1" />
+                    Assign to Agent
+                  </label>
+                  <select
+                    value={formData.assignedTo}
+                    onChange={(e) => handleInputChange('assignedTo', e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+                    disabled={!formData.branch}
+                  >
+                    <option value="">Select Agent</option>
+                    {availableAgents.map(agent => (
+                      <option key={agent.id} value={`${agent.firstName} ${agent.lastName}`}>
+                        {agent.firstName} {agent.lastName}
+                      </option>
+                    ))}
+                  </select>
+                  {!formData.branch && (
+                    <p className="mt-1 text-xs text-slate-400">Please select a branch first</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-50 mb-2">
+                    <Briefcase className="inline h-4 w-4 mr-1" />
+                    Assign to Employee
+                  </label>
+                  <select
+                    value={formData.assignedToEmployee}
+                    onChange={(e) => handleInputChange('assignedToEmployee', e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+                    disabled={!formData.branch}
+                  >
+                    <option value="">Select Employee</option>
+                    {availableEmployees.map(employee => (
+                      <option key={employee.id} value={`${employee.firstName} ${employee.lastName}`}>
+                        {employee.firstName} {employee.lastName} - {employee.designation}
+                      </option>
+                    ))}
+                  </select>
+                  {!formData.branch && (
+                    <p className="mt-1 text-xs text-slate-400">Please select a branch first</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-50 mb-2">
                     <DollarSign className="inline h-4 w-4 mr-1" />
                     Lead Value (₹) *
                   </label>
@@ -280,26 +344,25 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
                   />
                   {errors.value && <p className="mt-1 text-sm text-red-400">{errors.value}</p>}
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-50 mb-2">Assign To *</label>
-                  <select
-                    value={formData.assignedTo}
-                    onChange={(e) => handleInputChange('assignedTo', e.target.value)}
-                    className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
-                      errors.assignedTo ? 'border-red-500' : 'border-yellow-400/30'
-                    }`}
-                  >
-                    <option value="">Select Agent</option>
-                    {availableAgents.map(agent => (
-                      <option key={`${agent.firstName} ${agent.lastName}`} value={`${agent.firstName} ${agent.lastName}`}>
-                        {agent.firstName} {agent.lastName}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.assignedTo && <p className="mt-1 text-sm text-red-400">{errors.assignedTo}</p>}
-                </div>
               </div>
+
+              {/* Branch Information Summary */}
+              {formData.branch && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">Branch Information</h4>
+                  <div className="text-sm text-blue-800 space-y-1">
+                    <p>Selected Branch: <span className="font-semibold">{formData.branch}</span></p>
+                    <p>Available Agents: <span className="font-semibold">{availableAgents.length}</span></p>
+                    <p>Available Employees: <span className="font-semibold">{availableEmployees.length}</span></p>
+                    {formData.assignedTo && (
+                      <p>Assigned Agent: <span className="font-semibold text-green-700">{formData.assignedTo}</span></p>
+                    )}
+                    {formData.assignedToEmployee && (
+                      <p>Assigned Employee: <span className="font-semibold text-purple-700">{formData.assignedToEmployee}</span></p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-slate-50 mb-2">Notes</label>
