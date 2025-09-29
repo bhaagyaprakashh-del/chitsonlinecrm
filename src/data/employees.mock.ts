@@ -369,7 +369,11 @@ export const getEmployeeById = (id: string): Employee | undefined => {
 
 export const saveEmployees = (employees: Employee[]) => {
   try {
-    localStorage.setItem('employees_data', JSON.stringify(employees));
+    // Only save non-sample employees to localStorage
+    const nonSampleEmployees = employees.filter(emp => 
+      !sampleEmployees.find(sample => sample.id === emp.id)
+    );
+    localStorage.setItem('employees_data', JSON.stringify(nonSampleEmployees));
     window.dispatchEvent(new CustomEvent('employeesUpdated'));
   } catch (error) {
     console.error('Failed to save employees:', error);
@@ -378,13 +382,51 @@ export const saveEmployees = (employees: Employee[]) => {
 
 export const initializeEmployeesData = () => {
   try {
-    const existingEmployees = getEmployees();
-    const savedEmployees = JSON.parse(localStorage.getItem('employees_data') || '[]');
-    if (savedEmployees.length === 0) {
-      saveEmployees([]);
+    const saved = localStorage.getItem('employees_data');
+    if (!saved) {
+      // Initialize with empty array if no data exists
+      localStorage.setItem('employees_data', JSON.stringify([]));
     }
   } catch (error) {
     console.error('Error initializing employees data:', error);
-    saveEmployees([]);
+    localStorage.setItem('employees_data', JSON.stringify([]));
+  }
+};
+
+export const addEmployee = (employee: Employee) => {
+  try {
+    const existingEmployees = getEmployees();
+    const updatedEmployees = [...existingEmployees, employee];
+    saveEmployees(updatedEmployees);
+    return updatedEmployees;
+  } catch (error) {
+    console.error('Failed to add employee:', error);
+    throw error;
+  }
+};
+
+export const updateEmployee = (updatedEmployee: Employee) => {
+  try {
+    const existingEmployees = getEmployees();
+    const updatedEmployees = existingEmployees.map(emp => 
+      emp.id === updatedEmployee.id ? updatedEmployee : emp
+    );
+    saveEmployees(updatedEmployees);
+    return updatedEmployees;
+  } catch (error) {
+    console.error('Failed to update employee:', error);
+    throw error;
+  }
+};
+
+export const deleteEmployee = (employeeId: string) => {
+  try {
+    const existingEmployees = getEmployees();
+    const updatedEmployees = existingEmployees.filter(emp => emp.id !== employeeId);
+    saveEmployees(updatedEmployees);
+    return updatedEmployees;
+  } catch (error) {
+    console.error('Failed to delete employee:', error);
+    throw error;
   }
 };

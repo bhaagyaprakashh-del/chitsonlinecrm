@@ -1,16 +1,25 @@
 import React, { useState } from 'react';
-import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarSign, User, Shield, FileText, Activity, Search, Save, X, Eye, Trash2 } from 'lucide-react';
+import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarSign, User, Shield, FileText, Activity, Search, Save, X, Eye, Trash2, Key, Lock, EyeOff } from 'lucide-react';
 import { Employee } from '../../types/hrms';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { getEmployees, saveEmployees, getEmployeeById } from '../../data/employees.mock';
+import { getEmployees, saveEmployees, initializeEmployeesData } from '../../data/employees.mock';
 import { getBranches } from '../../data/branches.mock';
+import { UserCategory } from '../../data/users.mock';
 
 interface Employee360Props {
   employeeId: string;
   onBack: () => void;
 }
 
+interface UserCredentials {
+  username: string;
+  password: string;
+  confirmPassword: string;
+  role: UserCategory;
+  permissions: string[];
+  isActive: boolean;
+}
 const EmployeeTable: React.FC<{ 
   employees: Employee[]; 
   onEmployeeSelect: (employeeId: string) => void;
@@ -238,6 +247,23 @@ const EditEmployeeForm: React.FC<{
   const [formData, setFormData] = useState<Employee>({ ...employee });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [showUserCredentials, setShowUserCredentials] = useState(false);
+  const [userCredentials, setUserCredentials] = useState<UserCredentials>(() => {
+    // Load existing user credentials if they exist
+    const users = JSON.parse(localStorage.getItem('users_data') || '[]');
+    const existingUser = users.find((user: any) => user.employeeId === employee.employeeId);
+    
+    return {
+      username: existingUser?.username || `${employee.firstName.toLowerCase()}.${employee.lastName.toLowerCase()}`,
+      password: '',
+      confirmPassword: '',
+      role: (existingUser?.category as UserCategory) || 'Employees',
+      permissions: existingUser?.permissions || [],
+      isActive: existingUser?.status === 'Active'
+    };
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const branches = getBranches().filter(b => b.status === 'active');
   const departments = [
@@ -248,6 +274,12 @@ const EditEmployeeForm: React.FC<{
     'Prakashh Admin', 'Rajesh Kumar', 'Priya Sharma', 'Amit Patel', 'Sunita Reddy'
   ];
 
+  const rolePermissions = {
+    'Admin': ['dashboard.view', 'employees.view', 'employees.create', 'employees.edit', 'reports.view', 'settings.view'],
+    'Employees': ['dashboard.view', 'employees.view', 'reports.view'],
+    'Agents': ['dashboard.view', 'leads.view', 'leads.create'],
+    'Subscribers': ['dashboard.view', 'profile.view']
+  };
   const handleInputChange = (field: keyof Employee, value: any) => {
     setFormData(prev => ({
       ...prev,
@@ -269,6 +301,27 @@ const EditEmployeeForm: React.FC<{
     }));
   };
 
+  const handleUserCredentialsChange = (field: keyof UserCredentials, value: any) => {
+    setUserCredentials(prev => ({ ...prev, [field]: value }));
+    
+    // Auto-update permissions when role changes
+    if (field === 'role') {
+      setUserCredentials(prev => ({
+        ...prev,
+        permissions: rolePermissions[value as UserCategory] || []
+      }));
+    }
+  };
+
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$';
+    let password = '';
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setUserCredentials(prev => ({ ...prev, password, confirmPassword: password }));
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -280,6 +333,15 @@ const EditEmployeeForm: React.FC<{
     if (!formData.department?.trim()) newErrors.department = 'Department is required';
     if (!formData.branch?.trim()) newErrors.branch = 'Branch is required';
     if (!formData.basicSalary || formData.basicSalary <= 0) newErrors.basicSalary = 'Basic salary is required';
+
+    // Validate user credentials if section is shown
+    if (showUserCredentials) {
+      if (!userCredentials.username.trim()) newErrors.username = 'Username is required';
+      if (!userCredentials.password.trim()) newErrors.password = 'Password is required';
+      if (userCredentials.password !== userCredentials.confirmPassword) {
+        newErrors.confirmPassword = 'Passwords do not match';
+      }
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -302,8 +364,40 @@ const EditEmployeeForm: React.FC<{
         updatedBy: 'current-user@ramnirmalchits.com'
       };
       
+      // Update user credentials if modified
+      if (showUserCredentials) {
+        const users = JSON.parse(localStorage.getItem('users_data') || '[]');
+        const existingUserIndex = users.findIndex((user: any) => user.employeeId === employee.employeeId);
+        
+        const userData = {
+          id: existingUserIndex >= 0 ? users[existingUserIndex].id : `user_${Date.now()}`,
+          name: `${updatedEmployee.firstName} ${updatedEmployee.lastName}`,
+          email: updatedEmployee.email,
+          phone: updatedEmployee.phone,
+          category: userCredentials.role,
+          role: updatedEmployee.designation,
+          status: userCredentials.isActive ? 'Active' : 'Inactive',
+          department: updatedEmployee.department,
+          branch: updatedEmployee.branch,
+          joiningDate: updatedEmployee.joiningDate,
+          lastLogin: existingUserIndex >= 0 ? users[existingUserIndex].lastLogin : null,
+          username: userCredentials.username,
+          password: userCredentials.password,
+          permissions: userCredentials.permissions,
+          employeeId: updatedEmployee.employeeId
+        };
+        
+        if (existingUserIndex >= 0) {
+          users[existingUserIndex] = userData;
+        } else {
+          users.push(userData);
+        }
+        
+        localStorage.setItem('users_data', JSON.stringify(users));
+        window.dispatchEvent(new CustomEvent('usersUpdated'));
+      }
+      
       onSave(updatedEmployee);
-      toast.success(`Employee ${updatedEmployee.firstName} ${updatedEmployee.lastName} updated successfully!`);
     } catch (error) {
       console.error('Error updating employee:', error);
       toast.error('Failed to update employee. Please try again.');
@@ -516,6 +610,140 @@ const EditEmployeeForm: React.FC<{
           </div>
         </div>
 
+        {/* User Credentials Section */}
+        <div className="border-t border-yellow-400/30 pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-lg font-semibold text-slate-50 flex items-center">
+              <Key className="h-5 w-5 mr-2" />
+              User Account Credentials
+            </h4>
+            <button
+              type="button"
+              onClick={() => setShowUserCredentials(!showUserCredentials)}
+              className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            >
+              {showUserCredentials ? 'Hide' : 'Edit'} Credentials
+            </button>
+          </div>
+          
+          {showUserCredentials && (
+            <div className="space-y-4 p-4 bg-slate-700/30 rounded-xl border border-yellow-400/20">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-50 mb-2">Username *</label>
+                  <input
+                    type="text"
+                    value={userCredentials.username}
+                    onChange={(e) => handleUserCredentialsChange('username', e.target.value)}
+                    className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                      errors.username ? 'border-red-500' : 'border-yellow-400/30'
+                    }`}
+                    disabled={isSaving}
+                  />
+                  {errors.username && <p className="mt-1 text-sm text-red-400">{errors.username}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-50 mb-2">User Role</label>
+                  <select
+                    value={userCredentials.role}
+                    onChange={(e) => handleUserCredentialsChange('role', e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+                    disabled={isSaving}
+                  >
+                    <option value="Admin">Admin</option>
+                    <option value="Employees">Employee</option>
+                    <option value="Agents">Agent</option>
+                    <option value="Subscribers">Subscriber</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-50 mb-2">New Password</label>
+                  <div className="flex space-x-2">
+                    <div className="relative flex-1">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={userCredentials.password}
+                        onChange={(e) => handleUserCredentialsChange('password', e.target.value)}
+                        className={`w-full px-3 py-2 pr-10 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                          errors.password ? 'border-red-500' : 'border-yellow-400/30'
+                        }`}
+                        placeholder="Leave empty to keep current"
+                        disabled={isSaving}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={generatePassword}
+                      className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                      disabled={isSaving}
+                    >
+                      Generate
+                    </button>
+                  </div>
+                  {errors.password && <p className="mt-1 text-sm text-red-400">{errors.password}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-50 mb-2">Confirm Password</label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={userCredentials.confirmPassword}
+                      onChange={(e) => handleUserCredentialsChange('confirmPassword', e.target.value)}
+                      className={`w-full px-3 py-2 pr-10 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                        errors.confirmPassword ? 'border-red-500' : 'border-yellow-400/30'
+                      }`}
+                      placeholder="Confirm new password"
+                      disabled={isSaving}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && <p className="mt-1 text-sm text-red-400">{errors.confirmPassword}</p>}
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={userCredentials.isActive}
+                    onChange={(e) => handleUserCredentialsChange('isActive', e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    disabled={isSaving}
+                  />
+                  <span className="ml-2 text-slate-50">Account Active</span>
+                </label>
+              </div>
+
+              {/* Permissions Preview */}
+              <div className="p-4 bg-slate-800/50 rounded-lg border border-yellow-400/20">
+                <h5 className="text-sm font-medium text-slate-50 mb-2">Assigned Permissions</h5>
+                <div className="flex flex-wrap gap-2">
+                  {userCredentials.permissions.map((permission, index) => (
+                    <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 border border-blue-200">
+                      {permission.replace('.', ' ').replace('_', ' ')}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
         <div>
           <label className="block text-sm font-medium text-slate-50 mb-2">Address</label>
           <textarea
@@ -574,23 +802,34 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const actualEmployeeId = searchParams.get('id') || employeeId;
+  const shouldEdit = searchParams.get('edit') === 'true';
   
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(actualEmployeeId);
   const [activeTab, setActiveTab] = useState('table');
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(shouldEdit);
 
   // Load employees data on component mount
   React.useEffect(() => {
+    console.log('Employee360: Loading employees data...');
+    initializeEmployeesData();
     const loadedEmployees = getEmployees();
+    console.log('Employee360: Loaded employees:', loadedEmployees.length);
     setEmployees(loadedEmployees);
     
     // Find the specific employee or use the first one
-    const foundEmployee = loadedEmployees.find(e => e.id === actualEmployeeId || e.employeeId === actualEmployeeId) || loadedEmployees[0];
+    const foundEmployee = loadedEmployees.find(e => e.id === actualEmployeeId || e.employeeId === actualEmployeeId);
     if (foundEmployee) {
       setSelectedEmployee(foundEmployee);
       setSelectedEmployeeId(foundEmployee.id);
+      if (actualEmployeeId && !shouldEdit) {
+        setActiveTab('overview');
+      }
+    } else if (loadedEmployees.length > 0) {
+      const firstEmployee = loadedEmployees[0];
+      setSelectedEmployee(firstEmployee);
+      setSelectedEmployeeId(firstEmployee.id);
     }
   }, [actualEmployeeId]);
 
@@ -633,32 +872,17 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
 
   const handleSaveEmployee = (updatedEmployee: Employee) => {
     try {
-      // Update in localStorage
+      // Update employees using the centralized function
       const allEmployees = getEmployees();
       const updatedEmployees = allEmployees.map(emp => 
         emp.id === updatedEmployee.id ? updatedEmployee : emp
       );
-      
-      // Save to localStorage (excluding sample employees)
-      const savedEmployees = JSON.parse(localStorage.getItem('employees_data') || '[]');
-      const updatedSavedEmployees = savedEmployees.map((emp: Employee) => 
-        emp.id === updatedEmployee.id ? updatedEmployee : emp
-      );
-      
-      // If employee not in saved list, add it
-      if (!updatedSavedEmployees.find((emp: Employee) => emp.id === updatedEmployee.id)) {
-        updatedSavedEmployees.push(updatedEmployee);
-      }
-      
-      localStorage.setItem('employees_data', JSON.stringify(updatedSavedEmployees));
+      saveEmployees(updatedEmployees);
       
       // Update local state
       setEmployees(updatedEmployees);
       setSelectedEmployee(updatedEmployee);
       setIsEditing(false);
-      
-      // Trigger update events
-      window.dispatchEvent(new CustomEvent('employeesUpdated'));
       
       toast.success('Employee updated successfully!');
     } catch (error) {
@@ -706,28 +930,28 @@ Ramnirmalchits Financial Services`);
     
     if (confirmDelete) {
       try {
-        // Remove from localStorage
-        const saved = localStorage.getItem('employees_data');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          const updatedEmployees = parsed.filter((emp: Employee) => emp.id !== employee.id);
-          localStorage.setItem('employees_data', JSON.stringify(updatedEmployees));
-          
-          // Update local state
-          setEmployees(prev => prev.filter(emp => emp.id !== employee.id));
-          
-          // If deleted employee was selected, clear selection
-          if (selectedEmployeeId === employee.id) {
-            setSelectedEmployee(null);
-            setSelectedEmployeeId('');
-            setActiveTab('table');
-          }
-          
-          // Trigger update events
-          window.dispatchEvent(new CustomEvent('employeesUpdated'));
-          
-          toast.success(`${employee.firstName} ${employee.lastName} deleted successfully`);
+        // Update employees using the centralized function
+        const allEmployees = getEmployees();
+        const updatedEmployees = allEmployees.filter(emp => emp.id !== employee.id);
+        saveEmployees(updatedEmployees);
+        
+        // Update local state
+        setEmployees(updatedEmployees);
+        
+        // If deleted employee was selected, clear selection
+        if (selectedEmployeeId === employee.id) {
+          setSelectedEmployee(null);
+          setSelectedEmployeeId('');
+          setActiveTab('table');
         }
+        
+        // Also remove associated user account
+        const users = JSON.parse(localStorage.getItem('users_data') || '[]');
+        const updatedUsers = users.filter((user: any) => user.employeeId !== employee.employeeId);
+        localStorage.setItem('users_data', JSON.stringify(updatedUsers));
+        window.dispatchEvent(new CustomEvent('usersUpdated'));
+        
+        toast.success(`${employee.firstName} ${employee.lastName} deleted successfully`);
       } catch (error) {
         console.error('Error deleting employee:', error);
         toast.error('Failed to delete employee. Please try again.');
@@ -814,6 +1038,10 @@ Ramnirmalchits Financial Services`);
                   <span className="text-slate-400">Blood Group</span>
                   <span className="text-slate-50">{selectedEmployee.bloodGroup}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Address</span>
+                  <span className="text-slate-50">{selectedEmployee.address}</span>
+                </div>
               </div>
             </div>
 
@@ -840,8 +1068,96 @@ Ramnirmalchits Financial Services`);
                   <span className="text-slate-400">Reporting Manager</span>
                   <span className="text-slate-50">{selectedEmployee.reportingManager}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Employment Type</span>
+                  <span className="text-slate-50 capitalize">{selectedEmployee.employmentType}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Work Location</span>
+                  <span className="text-slate-50 capitalize">{selectedEmployee.workLocation}</span>
+                </div>
               </div>
             </div>
+
+            {/* Contact Information */}
+            <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
+              <h3 className="text-lg font-semibold text-slate-50 mb-4">Contact Information</h3>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <Mail className="h-4 w-4 text-slate-400" />
+                  <span className="text-slate-50">{selectedEmployee.email}</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Phone className="h-4 w-4 text-slate-400" />
+                  <span className="text-slate-50">{selectedEmployee.phone}</span>
+                </div>
+                {selectedEmployee.alternatePhone && (
+                  <div className="flex items-center space-x-3">
+                    <Phone className="h-4 w-4 text-slate-400" />
+                    <span className="text-slate-50">{selectedEmployee.alternatePhone}</span>
+                  </div>
+                )}
+                <div className="flex items-center space-x-3">
+                  <Calendar className="h-4 w-4 text-slate-400" />
+                  <span className="text-slate-50">Joined: {new Date(selectedEmployee.joiningDate).toLocaleDateString()}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Emergency Contact */}
+            <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
+              <h3 className="text-lg font-semibold text-slate-50 mb-4">Emergency Contact</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Name</span>
+                  <span className="text-slate-50">{selectedEmployee.emergencyContact.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Relationship</span>
+                  <span className="text-slate-50 capitalize">{selectedEmployee.emergencyContact.relationship}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Phone</span>
+                  <span className="text-slate-50">{selectedEmployee.emergencyContact.phone}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Skills & Qualifications */}
+            {selectedEmployee.skills.length > 0 && (
+              <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30 lg:col-span-2">
+                <h3 className="text-lg font-semibold text-slate-50 mb-4">Skills & Qualifications</h3>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium text-slate-50 mb-2">Skills</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedEmployee.skills.map((skill, index) => (
+                        <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 border border-blue-200">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {selectedEmployee.qualifications.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-slate-50 mb-2">Education</h4>
+                      <div className="space-y-2">
+                        {selectedEmployee.qualifications.map((qual, index) => (
+                          <div key={index} className="p-3 bg-slate-700/30 rounded-lg border border-yellow-400/20">
+                            <p className="text-slate-50 font-medium">{qual.degree}</p>
+                            <p className="text-slate-400 text-sm">{qual.institution} • {qual.year}</p>
+                            {qual.percentage && (
+                              <p className="text-slate-300 text-sm">Score: {qual.percentage}%</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         );
 

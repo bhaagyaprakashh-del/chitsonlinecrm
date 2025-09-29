@@ -1,180 +1,10 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, CreditCard as Edit, Trash2, Eye, Mail, Phone, MapPin, Calendar, DollarSign, Users, Star, CheckCircle, XCircle, AlertTriangle, Clock, Award, Target, TrendingUp, Filter, Download, Upload, MoreVertical, User, Building, CreditCard, Shield, Flag, Zap, Crown, Briefcase } from 'lucide-react';
 import { Employee } from '../../types/hrms';
-import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { getEmployees, saveEmployees, initializeEmployeesData } from '../../data/employees.mock';
 
-const sampleEmployees: Employee[] = [
-  {
-    id: '1',
-    employeeId: 'EMP001',
-    firstName: 'Priya',
-    lastName: 'Sharma',
-    email: 'priya.sharma@ramnirmalchits.com',
-    phone: '+91 98765 43215',
-    alternatePhone: '+91 98765 43216',
-    dateOfBirth: '1990-05-15',
-    gender: 'female',
-    maritalStatus: 'single',
-    bloodGroup: 'O+',
-    address: '123 MG Road, Bangalore',
-    city: 'Bangalore',
-    state: 'Karnataka',
-    country: 'India',
-    postalCode: '560001',
-    designation: 'Senior Sales Executive',
-    department: 'Sales & Marketing',
-    branch: 'Bangalore Main',
-    joiningDate: '2021-06-01',
-    confirmationDate: '2021-12-01',
-    probationPeriod: 6,
-    employmentType: 'permanent',
-    workLocation: 'office',
-    reportingManager: 'Rajesh Kumar',
-    teamMembers: [],
-    basicSalary: 75000,
-    allowances: {
-      hra: 22500,
-      transport: 5000,
-      medical: 2500,
-      special: 5000
-    },
-    deductions: {
-      pf: 9000,
-      esi: 562,
-      tax: 8500,
-      other: 0
-    },
-    bankAccount: {
-      accountNumber: '1234567890',
-      bankName: 'HDFC Bank',
-      ifscCode: 'HDFC0001234',
-      accountHolderName: 'Priya Sharma'
-    },
-    documents: {
-      resume: '/documents/priya-resume.pdf',
-      idProof: '/documents/priya-aadhaar.pdf',
-      addressProof: '/documents/priya-utility.pdf',
-      educationCertificates: ['/documents/priya-degree.pdf'],
-      photo: '/documents/priya-photo.jpg'
-    },
-    skills: ['Sales', 'Customer Relations', 'Lead Generation', 'CRM'],
-    qualifications: [
-      {
-        degree: 'MBA Marketing',
-        institution: 'Bangalore University',
-        year: '2020',
-        percentage: 85
-      },
-      {
-        degree: 'B.Com',
-        institution: 'Christ University',
-        year: '2018',
-        percentage: 78
-      }
-    ],
-    experience: [
-      {
-        company: 'Previous Sales Corp',
-        designation: 'Sales Executive',
-        duration: '2 years',
-        responsibilities: 'Lead generation and customer acquisition'
-      }
-    ],
-    status: 'active',
-    emergencyContact: {
-      name: 'Ramesh Sharma',
-      relationship: 'Father',
-      phone: '+91 98765 43217'
-    },
-    createdAt: '2021-06-01',
-    createdBy: 'hr@ramnirmalchits.com',
-    updatedAt: '2024-03-15',
-    updatedBy: 'priya.sharma@ramnirmalchits.com',
-    notes: 'Top performing sales executive with excellent customer relationships'
-  },
-  {
-    id: '2',
-    employeeId: 'EMP002',
-    firstName: 'Karthik',
-    lastName: 'Nair',
-    email: 'karthik.nair@ramnirmalchits.com',
-    phone: '+91 98765 43221',
-    dateOfBirth: '1988-03-22',
-    gender: 'male',
-    maritalStatus: 'married',
-    bloodGroup: 'A+',
-    address: '456 Jayanagar, Bangalore',
-    city: 'Bangalore',
-    state: 'Karnataka',
-    country: 'India',
-    postalCode: '560041',
-    designation: 'Chit Fund Manager',
-    department: 'Operations',
-    branch: 'Bangalore South',
-    joiningDate: '2020-08-15',
-    confirmationDate: '2021-02-15',
-    probationPeriod: 6,
-    employmentType: 'permanent',
-    workLocation: 'office',
-    reportingManager: 'Rajesh Kumar',
-    teamMembers: ['3', '4'],
-    basicSalary: 85000,
-    allowances: {
-      hra: 25500,
-      transport: 6000,
-      medical: 3000,
-      special: 7000
-    },
-    deductions: {
-      pf: 10200,
-      esi: 637,
-      tax: 12000,
-      other: 0
-    },
-    bankAccount: {
-      accountNumber: '2345678901',
-      bankName: 'SBI',
-      ifscCode: 'SBIN0001234',
-      accountHolderName: 'Karthik Nair'
-    },
-    documents: {
-      resume: '/documents/karthik-resume.pdf',
-      idProof: '/documents/karthik-pan.pdf',
-      addressProof: '/documents/karthik-lease.pdf',
-      educationCertificates: ['/documents/karthik-mba.pdf'],
-      photo: '/documents/karthik-photo.jpg'
-    },
-    skills: ['Operations Management', 'Chit Fund Operations', 'Team Leadership', 'Customer Service'],
-    qualifications: [
-      {
-        degree: 'MBA Finance',
-        institution: 'IIM Bangalore',
-        year: '2019',
-        percentage: 88
-      }
-    ],
-    experience: [
-      {
-        company: 'Financial Services Ltd',
-        designation: 'Operations Executive',
-        duration: '3 years',
-        responsibilities: 'Financial operations and customer management'
-      }
-    ],
-    status: 'active',
-    emergencyContact: {
-      name: 'Meera Nair',
-      relationship: 'Spouse',
-      phone: '+91 98765 43222'
-    },
-    createdAt: '2020-08-15',
-    createdBy: 'hr@ramnirmalchits.com',
-    updatedAt: '2024-03-14',
-    updatedBy: 'karthik.nair@ramnirmalchits.com',
-    notes: 'Experienced operations manager with strong leadership skills'
-  }
-];
 
 const EmployeeCard: React.FC<{ 
   employee: Employee; 
@@ -360,43 +190,28 @@ const EmployeeCard: React.FC<{
 
 export const EmployeeDirectory: React.FC = () => {
   const navigate = useNavigate();
-  const [employees, setEmployees] = useState<Employee[]>(() => {
-    // Load employees from localStorage, fallback to sample data
-    const saved = localStorage.getItem('employees_data');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const validEmployees = Array.isArray(parsed) ? parsed : [];
-        return validEmployees.length > 0 ? [...sampleEmployees, ...validEmployees] : sampleEmployees;
-      } catch (error) {
-        console.error('Failed to load employees:', error);
-        return sampleEmployees;
-      }
-    }
-    return sampleEmployees;
-  });
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
   const [filterEmploymentType, setFilterEmploymentType] = useState<string>('all');
 
+  // Load employees on component mount
+  React.useEffect(() => {
+    console.log('EmployeeDirectory: Loading employees data...');
+    initializeEmployeesData();
+    const loadedEmployees = getEmployees();
+    console.log('EmployeeDirectory: Loaded employees:', loadedEmployees.length);
+    setEmployees(loadedEmployees);
+  }, []);
+
   // Listen for employee updates
   React.useEffect(() => {
     const handleEmployeeUpdate = () => {
       console.log('EmployeeDirectory: Storage changed, reloading employees...');
-      const saved = localStorage.getItem('employees_data');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            const validEmployees = parsed.filter(emp => emp && emp.id);
-            setEmployees([...sampleEmployees, ...validEmployees]);
-            console.log('EmployeeDirectory: Updated employees count:', sampleEmployees.length + validEmployees.length);
-          }
-        } catch (error) {
-          console.error('Failed to reload employees:', error);
-        }
-      }
+      const updatedEmployees = getEmployees();
+      console.log('EmployeeDirectory: Updated employees count:', updatedEmployees.length);
+      setEmployees(updatedEmployees);
     };
 
     window.addEventListener('storage', handleEmployeeUpdate);
@@ -434,7 +249,7 @@ export const EmployeeDirectory: React.FC = () => {
     avgSalary: employees.length > 0 ? employees.reduce((sum, e) => sum + e.basicSalary, 0) / employees.length : 0
   }), [employees]);
 
-  const uniqueDepartments = useMemo(() => [...new Set(employees.map(e => e.department))], [employees]);
+  const uniqueDepartments = useMemo(() => [...new Set(employees.map(e => e.department).filter(Boolean))], [employees]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -445,13 +260,11 @@ export const EmployeeDirectory: React.FC = () => {
   };
 
   const handleViewEmployee = (employee: Employee) => {
-    navigate(`/hrms-employee-360?id=${employee.id}`);
+    navigate(`/hrms-employee-360?id=${employee.id}&name=${encodeURIComponent(employee.firstName + ' ' + employee.lastName)}`);
   };
 
   const handleEditEmployee = (employee: Employee) => {
-    toast.success(`Opening edit form for ${employee.firstName} ${employee.lastName}`);
-    // For now, we'll show a toast. In a real app, this would navigate to an edit page
-    toast.info('Edit functionality will open employee edit form');
+    navigate(`/hrms-employee-360?id=${employee.id}&edit=true`);
   };
 
   const handleDeleteEmployee = (employee: Employee) => {
@@ -461,21 +274,15 @@ export const EmployeeDirectory: React.FC = () => {
     
     if (confirmDelete) {
       try {
-        // Remove from localStorage
-        const saved = localStorage.getItem('employees_data');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          const updatedEmployees = parsed.filter((emp: Employee) => emp.id !== employee.id);
-          localStorage.setItem('employees_data', JSON.stringify(updatedEmployees));
-          
-          // Update local state
-          setEmployees(prev => prev.filter(emp => emp.id !== employee.id));
-          
-          // Trigger update events
-          window.dispatchEvent(new CustomEvent('employeesUpdated'));
-          
-          toast.success(`${employee.firstName} ${employee.lastName} deleted successfully`);
-        }
+        // Update employees using the centralized function
+        const allEmployees = getEmployees();
+        const updatedEmployees = allEmployees.filter(emp => emp.id !== employee.id);
+        saveEmployees(updatedEmployees);
+        
+        // Update local state
+        setEmployees(updatedEmployees);
+        
+        toast.success(`${employee.firstName} ${employee.lastName} deleted successfully`);
       } catch (error) {
         console.error('Error deleting employee:', error);
         toast.error('Failed to delete employee. Please try again.');
@@ -496,23 +303,15 @@ export const EmployeeDirectory: React.FC = () => {
         updatedBy: 'current-user@ramnirmalchits.com'
       };
       
-      // Update in localStorage
-      const saved = localStorage.getItem('employees_data');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        const updatedEmployees = parsed.map((emp: Employee) => 
-          emp.id === employee.id ? updatedEmployee : emp
-        );
-        localStorage.setItem('employees_data', JSON.stringify(updatedEmployees));
-      }
+      // Update employees using the centralized function
+      const allEmployees = getEmployees();
+      const updatedEmployees = allEmployees.map(emp => 
+        emp.id === employee.id ? updatedEmployee : emp
+      );
+      saveEmployees(updatedEmployees);
       
       // Update local state
-      setEmployees(prev => prev.map(emp => 
-        emp.id === employee.id ? updatedEmployee : emp
-      ));
-      
-      // Trigger update events
-      window.dispatchEvent(new CustomEvent('employeesUpdated'));
+      setEmployees(updatedEmployees);
       
       toast.success(`${employee.firstName} ${employee.lastName} ${action} successfully`);
     } catch (error) {
