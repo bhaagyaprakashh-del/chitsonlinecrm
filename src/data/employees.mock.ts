@@ -386,7 +386,7 @@ export const initializeEmployeesData = () => {
   try {
     const saved = localStorage.getItem('employees_data');
     console.log('getEmployees: Loading employees from localStorage...');
-    if (saved && saved !== '[]') {
+    if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
         console.log('getEmployees: Found employees in localStorage:', parsed.length);
@@ -397,18 +397,9 @@ export const initializeEmployeesData = () => {
         return sampleEmployees;
       }
     }
-    if (!saved || saved === '[]') {
-      console.log('initializeEmployeesData: No data found, initializing with sample employees');
+    if (!saved) {
+      // Initialize with sample employees if no data exists
       localStorage.setItem('employees_data', JSON.stringify(sampleEmployees));
-    } else {
-      console.log('initializeEmployeesData: Data exists in localStorage');
-      try {
-        const parsed = JSON.parse(saved);
-        console.log('initializeEmployeesData: Parsed employees count:', parsed.length);
-      } catch (error) {
-        console.error('initializeEmployeesData: Error parsing existing data, reinitializing');
-        localStorage.setItem('employees_data', JSON.stringify(sampleEmployees));
-      }
     }
   } catch (error) {
     console.error('Error initializing employees data:', error);
