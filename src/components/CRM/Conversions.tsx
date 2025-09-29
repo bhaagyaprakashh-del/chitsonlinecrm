@@ -1,620 +1,396 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { TrendingUp, Award, Target, DollarSign, Users, Calendar, BarChart3, PieChart, Plus, Eye, UserPlus, CheckCircle, Star, Trophy, Crown, Medal, Phone, Mail, Building, User, CreditCard, Search, Filter, MoreVertical, Activity, FileText } from 'lucide-react';
-import { loadLeads, updateLead } from '../../data/leads.mock';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Search, Filter, Eye, CreditCard as Edit, Trash2, Phone, Mail, Building, Calendar, DollarSign, User, Tag, Activity, FileText, Target, TrendingUp, Users, Star, CheckCircle, XCircle, AlertTriangle, Clock, Award, MoreVertical, UserPlus, ArrowRight, Download, Upload, RefreshCw, X, Save } from 'lucide-react';
 import { Lead } from '../../types/crm';
-import { getBranches } from '../../data/branches.mock';
-import { getAgentsByBranch } from '../../data/agents.mock';
-import { getEmployeesByBranch } from '../../data/employees.mock';
+import { Subscriber } from '../../types/subscribers';
+import { loadLeads, updateLead, saveLeads } from '../../data/leads.mock';
 import toast from 'react-hot-toast';
-import { Copy, Download, Send } from 'lucide-react';
 
-interface ConvertedLead extends Lead {
-  conversionDate: string;
-  subscriberId?: string;
-  isConverted: boolean;
+interface ConvertToSubscriberModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConvert: (subscriberData: any) => void;
+  lead: Lead | null;
 }
 
-interface AgentPerformance {
-  agentName: string;
-  totalLeads: number;
-  convertedLeads: number;
-  conversionRate: number;
-  totalValue: number;
-  rank: number;
-  badge: 'champion' | 'star' | 'performer' | 'rookie';
-}
-
-interface BranchPerformance {
-  branchName: string;
-  branchCode: string;
-  totalLeads: number;
-  convertedLeads: number;
-  conversionRate: number;
-  totalValue: number;
-  agentCount: number;
-  employeeCount: number;
-  avgDealSize: number;
-  rank: number;
-  badge: 'excellent' | 'good' | 'average' | 'needs-improvement';
-  agents: AgentPerformance[];
-  employees: any[];
-}
-
-// Mock function to save subscriber (in real app, this would call an API)
-const saveSubscriber = (subscriberData: any) => {
-  const existingSubscribers = JSON.parse(localStorage.getItem('subscribers_data') || '[]');
-  const newSubscriber = {
-    id: `sub_${Date.now()}`,
-    subscriberId: `SUB${String(Date.now()).slice(-3)}`,
-    firstName: subscriberData.firstName,
-    lastName: subscriberData.lastName,
-    email: subscriberData.email,
-    phone: subscriberData.phone,
-    company: subscriberData.company,
-    membershipType: 'Individual',
-    membershipTier: 'Basic',
-    joiningDate: new Date().toISOString().split('T')[0],
-    status: 'active',
+const ConvertToSubscriberModal: React.FC<ConvertToSubscriberModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onConvert, 
+  lead 
+}) => {
+  const [formData, setFormData] = useState({
+    membershipType: 'Individual' as 'Individual' | 'Corporate' | 'Enterprise' | 'Premium',
+    membershipTier: 'Basic' as 'Basic' | 'Silver' | 'Gold' | 'Platinum',
+    branch: '',
+    assignedAgent: '',
+    annualIncome: 0,
+    occupation: '',
     creditScore: 75,
-    totalInvestments: subscriberData.leadValue || 0,
-    currentBalance: 0,
-    totalReturns: 0,
-    activeSchemes: [],
-    completedSchemes: [],
-    totalSchemes: 0,
-    kycStatus: 'pending',
-    branch: 'Bangalore Main',
-    assignedAgent: subscriberData.assignedTo,
-    tags: ['converted-lead', ...subscriberData.tags],
-    notes: `Converted from lead. Original lead value: ₹${subscriberData.leadValue?.toLocaleString('en-IN')}`,
-    paymentHistory: {
-      onTimePayments: 0,
-      latePayments: 0,
-      missedPayments: 0,
-      averageDelayDays: 0
-    },
-    communicationPreferences: {
-      email: true,
-      sms: true,
-      whatsapp: true,
-      phone: false,
-      preferredTime: 'evening',
-      language: 'English'
-    },
-    riskProfile: 'low',
-    riskFactors: [],
-    nominee: {
-      name: '',
-      relationship: '',
-      phone: '',
-      address: '',
-      idProof: ''
-    },
-    emergencyContact: {
-      name: '',
-      relationship: '',
-      phone: ''
-    },
-    documents: [],
-    createdAt: new Date().toISOString(),
-    createdBy: 'system@ramnirmalchits.com',
-    updatedAt: new Date().toISOString(),
-    updatedBy: 'system@ramnirmalchits.com'
-  };
-  
-  existingSubscribers.push(newSubscriber);
-  localStorage.setItem('subscribers_data', JSON.stringify(existingSubscribers));
-  
-  // Trigger event to notify subscriber components
-  window.dispatchEvent(new CustomEvent('subscribersUpdated'));
-  
-  return newSubscriber;
-};
-
-const ConvertedLeadsTable: React.FC<{ 
-  leads: ConvertedLead[]; 
-  onConvertToSubscriber: (lead: ConvertedLead) => void;
-}> = ({ leads, onConvertToSubscriber }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-
-  const filteredLeads = leads.filter(lead => {
-    const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (lead.company && lead.company.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesStatus = filterStatus === 'all' || 
-                         (filterStatus === 'converted' && lead.isConverted) ||
-                         (filterStatus === 'pending' && !lead.isConverted);
-    
-    return matchesSearch && matchesStatus;
+    riskProfile: 'low' as 'low' | 'medium' | 'high',
+    notes: ''
   });
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const branches = [
+    'Bangalore Main', 'Bangalore South', 'Bangalore East', 'Bangalore West', 'Bangalore Central',
+    'Chennai Branch', 'Hyderabad Branch', 'Mumbai Branch'
+  ];
+
+  const agents = [
+    'Karthik Nair', 'Vikram Singh', 'Priya Reddy', 'Suresh Kumar', 'Anjali Sharma'
+  ];
+
+  useEffect(() => {
+    if (lead) {
+      setFormData(prev => ({
+        ...prev,
+        branch: lead.branch || '',
+        assignedAgent: lead.assignedTo || '',
+        membershipType: lead.company ? 'Corporate' : 'Individual',
+        membershipTier: lead.value >= 1000000 ? 'Platinum' : 
+                      lead.value >= 500000 ? 'Gold' : 
+                      lead.value >= 200000 ? 'Silver' : 'Basic',
+        notes: `Converted from lead: ${lead.name} (${lead.source})`
+      }));
+    }
+  }, [lead]);
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.branch) newErrors.branch = 'Branch is required';
+    if (!formData.assignedAgent) newErrors.assignedAgent = 'Agent assignment is required';
+    if (formData.annualIncome <= 0) newErrors.annualIncome = 'Annual income is required';
+    if (!formData.occupation.trim()) newErrors.occupation = 'Occupation is required';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-green-500';
-      default: return 'bg-gray-500';
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm() || !lead) return;
+
+    const subscriberData: Partial<Subscriber> = {
+      id: `sub_${Date.now()}`,
+      subscriberId: `SUB${String(Date.now()).slice(-3)}`,
+      firstName: lead.name.split(' ')[0],
+      lastName: lead.name.split(' ').slice(1).join(' ') || 'Customer',
+      email: lead.email,
+      phone: lead.phone,
+      dateOfBirth: '1990-01-01', // Default, can be updated later
+      gender: 'male', // Default, can be updated later
+      maritalStatus: 'single', // Default, can be updated later
+      occupation: formData.occupation,
+      annualIncome: formData.annualIncome,
+      address: lead.company || 'Address to be updated',
+      city: 'Bangalore',
+      state: 'Karnataka',
+      country: 'India',
+      postalCode: '560001',
+      membershipType: formData.membershipType,
+      membershipTier: formData.membershipTier,
+      joiningDate: new Date().toISOString().split('T')[0],
+      status: 'active',
+      creditScore: formData.creditScore,
+      totalInvestments: lead.value,
+      currentBalance: lead.value,
+      totalReturns: 0,
+      activeSchemes: [],
+      completedSchemes: [],
+      totalSchemes: 0,
+      kycStatus: 'pending',
+      documents: [],
+      nominee: {
+        name: '',
+        relationship: '',
+        phone: '',
+        address: '',
+        idProof: ''
+      },
+      emergencyContact: {
+        name: '',
+        relationship: '',
+        phone: ''
+      },
+      assignedAgent: formData.assignedAgent,
+      branch: formData.branch,
+      communicationPreferences: {
+        email: true,
+        sms: true,
+        whatsapp: true,
+        phone: false,
+        preferredTime: 'evening',
+        language: 'English'
+      },
+      riskProfile: formData.riskProfile,
+      riskFactors: [],
+      paymentHistory: {
+        onTimePayments: 0,
+        latePayments: 0,
+        missedPayments: 0,
+        averageDelayDays: 0
+      },
+      tags: [...(lead.tags || []), 'converted-lead'],
+      notes: formData.notes,
+      loginCount: 0,
+      accountLocked: false,
+      createdAt: new Date().toISOString(),
+      createdBy: 'system@ramnirmalchits.com',
+      updatedAt: new Date().toISOString(),
+      updatedBy: 'system@ramnirmalchits.com'
+    };
+
+    onConvert(subscriberData);
   };
+
+  if (!isOpen || !lead) return null;
 
   return (
-    <div className="space-y-4">
-      {/* Filters */}
-      <div className="bg-slate-800/40 backdrop-blur-xl rounded-xl p-4 border border-yellow-400/30">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Search converted leads..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg w-full text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm"
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}></div>
+      
+      <div className="relative bg-slate-800/90 backdrop-blur-xl border border-yellow-400/40 rounded-2xl shadow-2xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-semibold text-slate-50">Convert Lead to Subscriber</h3>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-700/50 rounded-lg transition-all">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Lead Information */}
+        <div className="mb-6 p-4 bg-slate-700/30 rounded-xl border border-yellow-400/20">
+          <h4 className="text-slate-50 font-medium mb-2">Converting Lead</h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-slate-400">Name:</span>
+              <span className="text-slate-50 ml-2">{lead.name}</span>
+            </div>
+            <div>
+              <span className="text-slate-400">Company:</span>
+              <span className="text-slate-50 ml-2">{lead.company || 'Individual'}</span>
+            </div>
+            <div>
+              <span className="text-slate-400">Email:</span>
+              <span className="text-slate-50 ml-2">{lead.email}</span>
+            </div>
+            <div>
+              <span className="text-slate-400">Phone:</span>
+              <span className="text-slate-50 ml-2">{lead.phone}</span>
+            </div>
+            <div>
+              <span className="text-slate-400">Lead Value:</span>
+              <span className="text-green-400 ml-2 font-semibold">
+                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(lead.value)}
+              </span>
+            </div>
+            <div>
+              <span className="text-slate-400">Source:</span>
+              <span className="text-slate-50 ml-2 capitalize">{lead.source.replace('-', ' ')}</span>
+            </div>
+          </div>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-50 mb-2">Membership Type</label>
+              <select
+                value={formData.membershipType}
+                onChange={(e) => setFormData(prev => ({ ...prev, membershipType: e.target.value as any }))}
+                className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+              >
+                <option value="Individual">Individual</option>
+                <option value="Corporate">Corporate</option>
+                <option value="Enterprise">Enterprise</option>
+                <option value="Premium">Premium</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-50 mb-2">Membership Tier</label>
+              <select
+                value={formData.membershipTier}
+                onChange={(e) => setFormData(prev => ({ ...prev, membershipTier: e.target.value as any }))}
+                className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+              >
+                <option value="Basic">Basic</option>
+                <option value="Silver">Silver</option>
+                <option value="Gold">Gold</option>
+                <option value="Platinum">Platinum</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-50 mb-2">Branch *</label>
+              <select
+                value={formData.branch}
+                onChange={(e) => setFormData(prev => ({ ...prev, branch: e.target.value }))}
+                className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                  errors.branch ? 'border-red-500' : 'border-yellow-400/30'
+                }`}
+              >
+                <option value="">Select Branch</option>
+                {branches.map(branch => (
+                  <option key={branch} value={branch}>{branch}</option>
+                ))}
+              </select>
+              {errors.branch && <p className="mt-1 text-sm text-red-400">{errors.branch}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-50 mb-2">Assigned Agent *</label>
+              <select
+                value={formData.assignedAgent}
+                onChange={(e) => setFormData(prev => ({ ...prev, assignedAgent: e.target.value }))}
+                className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                  errors.assignedAgent ? 'border-red-500' : 'border-yellow-400/30'
+                }`}
+              >
+                <option value="">Select Agent</option>
+                {agents.map(agent => (
+                  <option key={agent} value={agent}>{agent}</option>
+                ))}
+              </select>
+              {errors.assignedAgent && <p className="mt-1 text-sm text-red-400">{errors.assignedAgent}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-50 mb-2">Occupation *</label>
+              <input
+                type="text"
+                value={formData.occupation}
+                onChange={(e) => setFormData(prev => ({ ...prev, occupation: e.target.value }))}
+                className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                  errors.occupation ? 'border-red-500' : 'border-yellow-400/30'
+                }`}
+                placeholder="Enter occupation"
+              />
+              {errors.occupation && <p className="mt-1 text-sm text-red-400">{errors.occupation}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-50 mb-2">Annual Income (₹) *</label>
+              <input
+                type="number"
+                value={formData.annualIncome}
+                onChange={(e) => setFormData(prev => ({ ...prev, annualIncome: parseFloat(e.target.value) || 0 }))}
+                className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                  errors.annualIncome ? 'border-red-500' : 'border-yellow-400/30'
+                }`}
+                placeholder="1200000"
+              />
+              {errors.annualIncome && <p className="mt-1 text-sm text-red-400">{errors.annualIncome}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-50 mb-2">Credit Score (0-100)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={formData.creditScore}
+                onChange={(e) => setFormData(prev => ({ ...prev, creditScore: parseInt(e.target.value) || 75 }))}
+                className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+                placeholder="75"
+              />
+              <div className="mt-2">
+                <div className="w-full bg-slate-700/50 rounded-full h-2 border border-yellow-400/20">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      formData.creditScore >= 80 ? 'bg-green-500' :
+                      formData.creditScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${formData.creditScore}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-50 mb-2">Risk Profile</label>
+              <select
+                value={formData.riskProfile}
+                onChange={(e) => setFormData(prev => ({ ...prev, riskProfile: e.target.value as any }))}
+                className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+              >
+                <option value="low">Low Risk</option>
+                <option value="medium">Medium Risk</option>
+                <option value="high">High Risk</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-50 mb-2">Conversion Notes</label>
+            <textarea
+              rows={3}
+              value={formData.notes}
+              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+              placeholder="Additional notes about the conversion"
             />
           </div>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm"
-          >
-            <option value="all">All Converted Leads</option>
-            <option value="converted">Converted to Subscriber</option>
-            <option value="pending">Pending Conversion</option>
-          </select>
-          <div className="text-sm text-slate-400 flex items-center">
-            Showing: <span className="font-semibold ml-1 text-slate-50">{filteredLeads.length}</span> leads
-          </div>
-        </div>
-      </div>
 
-      {/* Converted Leads Table */}
-      <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-yellow-400/30 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-700/50 border-b border-yellow-400/20">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Lead</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Contact</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Deal Value</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Agent</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Conversion Date</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-yellow-400/20">
-              {filteredLeads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-slate-700/20 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-2">
-                        <div className={`w-3 h-3 rounded-full ${getPriorityColor(lead.priority)}`} title={`${lead.priority} priority`}></div>
-                        <div className="h-10 w-10 bg-slate-600/50 rounded-full flex items-center justify-center text-slate-50 font-medium border border-yellow-400/30">
-                          {lead.name.charAt(0)}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-50">{lead.name}</p>
-                        <p className="text-xs text-slate-400">{lead.company || 'Individual'}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <p className="text-sm text-slate-300">{lead.email}</p>
-                      <p className="text-xs text-slate-400">{lead.phone}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <p className="text-sm font-semibold text-green-400">{formatCurrency(lead.value)}</p>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <p className="text-sm text-slate-50">{lead.assignedTo}</p>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <p className="text-sm text-slate-50">{new Date(lead.conversionDate).toLocaleDateString()}</p>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {lead.isConverted ? (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                        <UserPlus className="h-3 w-3 mr-1" />
-                        SUBSCRIBER
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        WON
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => {
-                          if (navigator.userAgent.match(/Mobile|Android|iPhone|iPad/)) {
-                            window.location.href = `tel:${lead.phone}`;
-                          } else {
-                            navigator.clipboard.writeText(lead.phone);
-                            toast.success(`Phone number copied: ${lead.phone}`);
-                          }
-                        }}
-                        className="text-green-400 hover:text-green-300"
-                        title="Call Lead"
-                      >
-                        <Phone className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          const subject = encodeURIComponent(`Congratulations on your successful enrollment!`);
-                          const body = encodeURIComponent(`Dear ${lead.name},\n\nCongratulations on successfully enrolling in our chit fund scheme!\n\nBest regards,\n${lead.assignedTo}`);
-                          window.location.href = `mailto:${lead.email}?subject=${subject}&body=${body}`;
-                        }}
-                        className="text-blue-400 hover:text-blue-300"
-                        title="Send Email"
-                      >
-                        <Mail className="h-4 w-4" />
-                      </button>
-                      {!lead.isConverted && (
-                        <button
-                          onClick={() => onConvertToSubscriber(lead)}
-                          className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 transition-colors"
-                        >
-                          <UserPlus className="h-3 w-3 mr-1" />
-                          Convert to Subscriber
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {filteredLeads.length === 0 && (
-        <div className="text-center py-12">
-          <CheckCircle className="h-12 w-12 mx-auto text-slate-500 mb-4" />
-          <h3 className="text-lg font-medium text-slate-50 mb-2">No converted leads found</h3>
-          <p className="text-sm text-slate-400">Try adjusting your search criteria.</p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const AgentPerformanceCard: React.FC<{ performance: AgentPerformance }> = ({ performance }) => {
-  const getBadgeColor = (badge: string) => {
-    switch (badge) {
-      case 'champion': return 'bg-red-100 text-red-800 border-red-200';
-      case 'star': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'performer': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'rookie': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1: return Crown;
-      case 2: return Medal;
-      case 3: return Award;
-      default: return Trophy;
-    }
-  };
-
-  const getRankColor = (rank: number) => {
-    switch (rank) {
-      case 1: return 'text-yellow-400';
-      case 2: return 'text-gray-300';
-      case 3: return 'text-orange-400';
-      default: return 'text-slate-400';
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const RankIcon = getRankIcon(performance.rank);
-
-  return (
-    <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30 hover:border-yellow-400/50 transition-all">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className={`p-3 rounded-xl border border-yellow-400/30 ${
-            performance.rank === 1 ? 'bg-yellow-500/20' :
-            performance.rank === 2 ? 'bg-gray-500/20' :
-            performance.rank === 3 ? 'bg-orange-500/20' : 'bg-blue-500/20'
-          }`}>
-            <RankIcon className={`h-6 w-6 ${getRankColor(performance.rank)}`} />
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h3 className="text-lg font-semibold text-slate-50">#{performance.rank}</h3>
-              <h4 className="text-lg font-semibold text-slate-50">{performance.agentName}</h4>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-green-900 mb-2">✅ Conversion Summary</h4>
+            <div className="text-sm text-green-800 space-y-1">
+              <p>Lead "{lead?.name}" will be converted to a {formData.membershipTier} {formData.membershipType} subscriber</p>
+              <p>Initial investment value: {lead ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(lead.value) : '₹0'}</p>
+              <p>Branch: {formData.branch}</p>
+              <p>Assigned Agent: {formData.assignedAgent}</p>
+              <p>The lead status will be automatically updated to "won"</p>
             </div>
-            <p className="text-sm text-slate-400">Sales Agent</p>
           </div>
-        </div>
-        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getBadgeColor(performance.badge)}`}>
-          {performance.badge.toUpperCase()}
-        </span>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">Total Leads</span>
-            <span className="text-slate-50 font-medium">{performance.totalLeads}</span>
+          <div className="flex justify-end space-x-3 pt-6 border-t border-yellow-400/30">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700/50 border border-yellow-400/30 rounded-lg hover:bg-slate-700 transition-all backdrop-blur-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="inline-flex items-center px-6 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 transition-all"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Convert to Subscriber
+            </button>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">Converted</span>
-            <span className="text-green-400 font-medium">{performance.convertedLeads}</span>
-          </div>
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">Conversion Rate</span>
-            <span className="text-purple-400 font-medium">{performance.conversionRate.toFixed(1)}%</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">Total Value</span>
-            <span className="text-orange-400 font-medium">{formatCurrency(performance.totalValue)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Conversion Rate Progress Bar */}
-      <div className="mb-4">
-        <div className="flex justify-between text-sm text-slate-400 mb-1">
-          <span>Conversion Performance</span>
-          <span>{performance.conversionRate.toFixed(1)}%</span>
-        </div>
-        <div className="w-full bg-slate-700/50 rounded-full h-3 border border-yellow-400/20">
-          <div
-            className={`h-3 rounded-full transition-all duration-300 ${
-              performance.conversionRate >= 80 ? 'bg-green-500' :
-              performance.conversionRate >= 60 ? 'bg-yellow-500' :
-              performance.conversionRate >= 40 ? 'bg-orange-500' : 'bg-red-500'
-            }`}
-            style={{ width: `${Math.min(performance.conversionRate, 100)}%` }}
-          ></div>
-        </div>
-      </div>
-
-      <div className="flex justify-between items-center pt-4 border-t border-yellow-400/20">
-        <div className="flex items-center text-xs text-slate-500">
-          <Star className="h-3 w-3 mr-1" />
-          <span>Rank #{performance.rank} • {performance.badge}</span>
-        </div>
-        <div className="flex space-x-2">
-          <button className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all">
-            <Eye className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const BranchPerformanceCard: React.FC<{ 
-  performance: BranchPerformance; 
-  onExportSheet: (branchName: string) => void;
-  onSendEmails: (branchName: string) => void;
-}> = ({ performance, onExportSheet, onSendEmails }) => {
-  const getBadgeColor = (badge: string) => {
-    switch (badge) {
-      case 'excellent': return 'bg-green-100 text-green-800 border-green-200';
-      case 'good': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'average': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'needs-improvement': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1: return Crown;
-      case 2: return Medal;
-      case 3: return Award;
-      default: return Building;
-    }
-  };
-
-  const getRankColor = (rank: number) => {
-    switch (rank) {
-      case 1: return 'text-yellow-400';
-      case 2: return 'text-gray-300';
-      case 3: return 'text-orange-400';
-      default: return 'text-slate-400';
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const RankIcon = getRankIcon(performance.rank);
-
-  return (
-    <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30 hover:border-yellow-400/50 transition-all">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className={`p-3 rounded-xl border border-yellow-400/30 ${
-            performance.rank === 1 ? 'bg-yellow-500/20' :
-            performance.rank === 2 ? 'bg-gray-500/20' :
-            performance.rank === 3 ? 'bg-orange-500/20' : 'bg-blue-500/20'
-          }`}>
-            <RankIcon className={`h-6 w-6 ${getRankColor(performance.rank)}`} />
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h3 className="text-lg font-semibold text-slate-50">#{performance.rank}</h3>
-              <h4 className="text-lg font-semibold text-slate-50">{performance.branchName}</h4>
-            </div>
-            <p className="text-sm text-slate-400">{performance.branchCode}</p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getBadgeColor(performance.badge)}`}>
-            {performance.badge.replace('-', ' ').toUpperCase()}
-          </span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">Total Leads</span>
-            <span className="text-slate-50 font-medium">{performance.totalLeads}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">Converted</span>
-            <span className="text-green-400 font-medium">{performance.convertedLeads}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">Agents</span>
-            <span className="text-blue-400 font-medium">{performance.agentCount}</span>
-          </div>
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">Conversion Rate</span>
-            <span className="text-purple-400 font-medium">{performance.conversionRate.toFixed(1)}%</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">Total Value</span>
-            <span className="text-orange-400 font-medium">{formatCurrency(performance.totalValue)}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-400">Employees</span>
-            <span className="text-emerald-400 font-medium">{performance.employeeCount}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Performance Progress Bar */}
-      <div className="mb-4">
-        <div className="flex justify-between text-sm text-slate-400 mb-1">
-          <span>Branch Performance</span>
-          <span>{performance.conversionRate.toFixed(1)}%</span>
-        </div>
-        <div className="w-full bg-slate-700/50 rounded-full h-3 border border-yellow-400/20">
-          <div
-            className={`h-3 rounded-full transition-all duration-300 ${
-              performance.conversionRate >= 80 ? 'bg-green-500' :
-              performance.conversionRate >= 60 ? 'bg-yellow-500' :
-              performance.conversionRate >= 40 ? 'bg-orange-500' : 'bg-red-500'
-            }`}
-            style={{ width: `${Math.min(performance.conversionRate, 100)}%` }}
-          ></div>
-        </div>
-      </div>
-
-      {/* Top Performers Preview */}
-      <div className="mb-4 p-3 bg-slate-700/30 rounded-xl border border-yellow-400/20">
-        <p className="text-xs text-slate-500 mb-2">Top Performers:</p>
-        <div className="space-y-1">
-          {performance.agents.slice(0, 3).map((agent, index) => (
-            <div key={agent.agentName} className="flex items-center justify-between text-xs">
-              <span className="text-slate-300">{index + 1}. {agent.agentName}</span>
-              <span className="text-green-400">{agent.conversionRate.toFixed(1)}%</span>
-            </div>
-          ))}
-          {performance.agents.length > 3 && (
-            <p className="text-xs text-slate-500">+{performance.agents.length - 3} more agents</p>
-          )}
-        </div>
-      </div>
-
-      <div className="flex justify-between items-center pt-4 border-t border-yellow-400/20">
-        <div className="flex items-center text-xs text-slate-500">
-          <Building className="h-3 w-3 mr-1" />
-          <span>Rank #{performance.rank} • {performance.badge}</span>
-        </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => onExportSheet(performance.branchName)}
-            className="p-2 text-slate-400 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-all"
-            title="Export Performance Sheet"
-          >
-            <Download className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => onSendEmails(performance.branchName)}
-            className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all"
-            title="Send Performance Emails"
-          >
-            <Send className="h-4 w-4" />
-          </button>
-          <button className="p-2 text-slate-400 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-all">
-            <Eye className="h-4 w-4" />
-          </button>
-        </div>
+        </form>
       </div>
     </div>
   );
 };
 
 export const Conversions: React.FC = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState('current-month');
+  const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [activeTab, setActiveTab] = useState('sales-performance');
-  const [convertedLeadsData, setConvertedLeadsData] = useState<ConvertedLead[]>([]);
-  const [branches] = useState(() => getBranches());
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterPriority, setFilterPriority] = useState<string>('all');
+  const [filterSource, setFilterSource] = useState<string>('all');
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   // Load leads data on component mount
   useEffect(() => {
+    console.log('Conversions: Loading leads data...');
     const loadedLeads = loadLeads();
+    console.log('Conversions: Loaded leads:', loadedLeads.length);
     setLeads(loadedLeads);
-    
-    // Load converted leads from localStorage or initialize from won leads
-    const saved = localStorage.getItem('converted_leads_data');
-    if (saved) {
-      try {
-        setConvertedLeadsData(JSON.parse(saved));
-      } catch (error) {
-        console.error('Failed to load converted leads:', error);
-        initializeConvertedLeads(loadedLeads);
-      }
-    } else {
-      initializeConvertedLeads(loadedLeads);
-    }
   }, []);
 
-  const initializeConvertedLeads = (allLeads: Lead[]) => {
-    const wonLeads = allLeads.filter(l => l.status === 'won');
-    const converted = wonLeads.map(lead => ({
-      ...lead,
-      conversionDate: lead.updatedAt,
-      isConverted: false
-    }));
-    setConvertedLeadsData(converted);
-    localStorage.setItem('converted_leads_data', JSON.stringify(converted));
-  };
-
-  // Listen for storage changes
+  // Listen for storage changes (when leads are updated from kanban or other pages)
   useEffect(() => {
     const handleStorageChange = () => {
+      console.log('Conversions: Storage changed, reloading leads...');
       const updatedLeads = loadLeads();
+      console.log('Conversions: Updated leads count:', updatedLeads.length);
       setLeads(updatedLeads);
     };
 
@@ -627,471 +403,163 @@ export const Conversions: React.FC = () => {
     };
   }, []);
 
-  // Calculate real conversion stats from leads data
-  const conversionStats = useMemo(() => {
+  const filteredLeads = useMemo(() => leads.filter(lead => {
+    const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (lead.company && lead.company.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesStatus = filterStatus === 'all' || lead.status === filterStatus;
+    const matchesPriority = filterPriority === 'all' || lead.priority === filterPriority;
+    const matchesSource = filterSource === 'all' || lead.source === filterSource;
+    
+    return matchesSearch && matchesStatus && matchesPriority && matchesSource;
+  }), [leads, searchTerm, filterStatus, filterPriority, filterSource]);
+
+  const stats = useMemo(() => {
     const wonLeads = leads.filter(l => l.status === 'won');
     const lostLeads = leads.filter(l => l.status === 'lost');
-    const totalConversions = wonLeads.length;
     const totalAttempts = wonLeads.length + lostLeads.length;
-    const conversionRate = totalAttempts > 0 ? (wonLeads.length / totalAttempts * 100).toFixed(1) : '0';
-    const avgDealSize = wonLeads.length > 0 ? wonLeads.reduce((sum, l) => sum + l.value, 0) / wonLeads.length : 0;
-    const totalValue = wonLeads.reduce((sum, l) => sum + l.value, 0);
+    const conversionRate = totalAttempts > 0 ? (wonLeads.length / totalAttempts * 100) : 0;
+    const pipelineValue = leads.filter(l => !['won', 'lost'].includes(l.status)).reduce((sum, l) => sum + l.value, 0);
+    const wonValue = wonLeads.reduce((sum, l) => sum + l.value, 0);
+    const avgDealSize = wonLeads.length > 0 ? wonValue / wonLeads.length : 0;
 
-    const formatCurrency = (amount: number) => {
-      return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        maximumFractionDigits: 1,
-      }).format(amount);
+    return {
+      total: leads.length,
+      new: leads.filter(l => l.status === 'new').length,
+      contacted: leads.filter(l => l.status === 'contacted').length,
+      qualified: leads.filter(l => l.status === 'qualified').length,
+      proposal: leads.filter(l => l.status === 'proposal').length,
+      negotiation: leads.filter(l => l.status === 'negotiation').length,
+      won: wonLeads.length,
+      lost: lostLeads.length,
+      conversionRate: conversionRate,
+      pipelineValue: pipelineValue,
+      wonValue: wonValue,
+      avgDealSize: avgDealSize,
+      highPriority: leads.filter(l => l.priority === 'high').length,
+      readyToConvert: leads.filter(l => ['qualified', 'proposal', 'negotiation'].includes(l.status)).length
     };
-
-    return [
-      { label: 'Total Conversions', value: totalConversions.toString(), icon: Award, color: 'text-green-400', change: `${wonLeads.filter(l => new Date(l.updatedAt) > new Date(Date.now() - 30*24*60*60*1000)).length} this month` },
-      { label: 'Conversion Rate', value: `${conversionRate}%`, icon: TrendingUp, color: 'text-blue-400', change: 'Win rate' },
-      { label: 'Avg Deal Size', value: formatCurrency(avgDealSize), icon: DollarSign, color: 'text-purple-400', change: 'Per conversion' },
-      { label: 'Total Won Value', value: formatCurrency(totalValue), icon: Target, color: 'text-orange-400', change: 'All time' }
-    ];
   }, [leads]);
 
-  // Calculate agent performance rankings
-  const agentPerformance = useMemo(() => {
-    const agentStats: Record<string, AgentPerformance> = {};
-    
-    leads.forEach(lead => {
-      if (!lead.assignedTo) return;
-      
-      if (!agentStats[lead.assignedTo]) {
-        agentStats[lead.assignedTo] = {
-          agentName: lead.assignedTo,
-          totalLeads: 0,
-          convertedLeads: 0,
-          conversionRate: 0,
-          totalValue: 0,
-          rank: 0,
-          badge: 'rookie'
-        };
-      }
-      
-      agentStats[lead.assignedTo].totalLeads++;
-      if (lead.status === 'won') {
-        agentStats[lead.assignedTo].convertedLeads++;
-        agentStats[lead.assignedTo].totalValue += lead.value;
-      }
-    });
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
-    // Calculate conversion rates and assign rankings
-    const performances = Object.values(agentStats).map(agent => ({
-      ...agent,
-      conversionRate: agent.totalLeads > 0 ? (agent.convertedLeads / agent.totalLeads) * 100 : 0
-    }));
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'new': return 'bg-blue-100 text-blue-800';
+      case 'contacted': return 'bg-yellow-100 text-yellow-800';
+      case 'qualified': return 'bg-green-100 text-green-800';
+      case 'proposal': return 'bg-purple-100 text-purple-800';
+      case 'negotiation': return 'bg-orange-100 text-orange-800';
+      case 'won': return 'bg-emerald-100 text-emerald-800';
+      case 'lost': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
-    // Sort by conversion rate and assign ranks
-    performances.sort((a, b) => b.conversionRate - a.conversionRate);
-    performances.forEach((agent, index) => {
-      agent.rank = index + 1;
-      agent.badge = agent.conversionRate >= 80 ? 'champion' :
-                   agent.conversionRate >= 60 ? 'star' :
-                   agent.conversionRate >= 40 ? 'performer' : 'rookie';
-    });
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'bg-red-500';
+      case 'medium': return 'bg-yellow-500';
+      case 'low': return 'bg-green-500';
+      default: return 'bg-gray-500';
+    }
+  };
 
-    return performances;
-  }, [leads]);
+  const handleConvertLead = (lead: Lead) => {
+    setSelectedLead(lead);
+    setShowConvertModal(true);
+  };
 
-  // Calculate branch performance
-  const branchPerformance = useMemo(() => {
-    const branchStats: Record<string, BranchPerformance> = {};
-    
-    branches.forEach(branch => {
-      const branchLeads = leads.filter(lead => lead.branch === branch.name);
-      const branchAgents = getAgentsByBranch(branch.name);
-      const branchEmployees = getEmployeesByBranch(branch.name);
-      
-      const convertedLeads = branchLeads.filter(lead => lead.status === 'won');
-      const conversionRate = branchLeads.length > 0 ? (convertedLeads.length / branchLeads.length) * 100 : 0;
-      const totalValue = convertedLeads.reduce((sum, lead) => sum + lead.value, 0);
-      const avgDealSize = convertedLeads.length > 0 ? totalValue / convertedLeads.length : 0;
-      
-      // Calculate agent performance for this branch
-      const branchAgentPerformance = branchAgents.map(agent => {
-        const agentName = `${agent.firstName} ${agent.lastName}`;
-        const agentLeads = branchLeads.filter(lead => lead.assignedTo === agentName);
-        const agentConverted = agentLeads.filter(lead => lead.status === 'won');
-        const agentConversionRate = agentLeads.length > 0 ? (agentConverted.length / agentLeads.length) * 100 : 0;
-        const agentValue = agentConverted.reduce((sum, lead) => sum + lead.value, 0);
-        
-        return {
-          agentName,
-          totalLeads: agentLeads.length,
-          convertedLeads: agentConverted.length,
-          conversionRate: agentConversionRate,
-          totalValue: agentValue,
-          rank: 0,
-          badge: agentConversionRate >= 80 ? 'champion' :
-                 agentConversionRate >= 60 ? 'star' :
-                 agentConversionRate >= 40 ? 'performer' : 'rookie'
-        } as AgentPerformance;
-      });
-      
-      // Sort agents by conversion rate
-      branchAgentPerformance.sort((a, b) => b.conversionRate - a.conversionRate);
-      branchAgentPerformance.forEach((agent, index) => {
-        agent.rank = index + 1;
-      });
-      
-      branchStats[branch.name] = {
-        branchName: branch.name,
-        branchCode: branch.code,
-        totalLeads: branchLeads.length,
-        convertedLeads: convertedLeads.length,
-        conversionRate,
-        totalValue,
-        agentCount: branchAgents.length,
-        employeeCount: branchEmployees.length,
-        avgDealSize,
-        rank: 0,
-        badge: conversionRate >= 80 ? 'excellent' :
-               conversionRate >= 60 ? 'good' :
-               conversionRate >= 40 ? 'average' : 'needs-improvement',
-        agents: branchAgentPerformance,
-        employees: branchEmployees.map(emp => ({
-          name: `${emp.firstName} ${emp.lastName}`,
-          designation: emp.designation,
-          department: emp.department,
-          email: emp.email,
-          phone: emp.phone
-        }))
-      };
-    });
+  const handleConvertToSubscriber = async (subscriberData: Partial<Subscriber>) => {
+    if (!selectedLead) return;
 
-    // Sort branches by conversion rate and assign ranks
-    const performances = Object.values(branchStats);
-    performances.sort((a, b) => b.conversionRate - a.conversionRate);
-    performances.forEach((branch, index) => {
-      branch.rank = index + 1;
-    });
-
-    return performances;
-  }, [leads, branches]);
-
-  const handleConvertToSubscriber = (lead: ConvertedLead) => {
     try {
-      // Create subscriber data from lead
-      const subscriberData = {
-        firstName: lead.name.split(' ')[0] || lead.name,
-        lastName: lead.name.split(' ').slice(1).join(' ') || '',
-        email: lead.email,
-        phone: lead.phone,
-        company: lead.company,
-        leadValue: lead.value,
-        assignedTo: lead.assignedTo,
-        tags: lead.tags || []
+      // Save subscriber to localStorage
+      const existingSubscribers = localStorage.getItem('subscribers_data');
+      let subscribers = [];
+      
+      if (existingSubscribers) {
+        try {
+          subscribers = JSON.parse(existingSubscribers);
+          if (!Array.isArray(subscribers)) {
+            subscribers = [];
+          }
+        } catch (error) {
+          console.error('Error parsing existing subscribers:', error);
+          subscribers = [];
+        }
+      }
+      
+      subscribers.push(subscriberData);
+      localStorage.setItem('subscribers_data', JSON.stringify(subscribers));
+      
+      // Update lead status to 'won'
+      const updatedLead = {
+        ...selectedLead,
+        status: 'won' as Lead['status'],
+        updatedAt: new Date().toISOString(),
+        notes: [...selectedLead.notes, `Converted to subscriber on ${new Date().toLocaleDateString()}`]
       };
-
-      // Save as subscriber
-      const newSubscriber = saveSubscriber(subscriberData);
       
-      // Update converted leads data
-      const updatedConvertedLeads = convertedLeadsData.map(cl => 
-        cl.id === lead.id 
-          ? { ...cl, isConverted: true, subscriberId: newSubscriber.id }
-          : cl
-      );
+      // Update leads in storage
+      const updatedLeads = leads.map(l => l.id === selectedLead.id ? updatedLead : l);
+      setLeads(updatedLeads);
+      saveLeads(updatedLeads);
       
-      setConvertedLeadsData(updatedConvertedLeads);
-      localStorage.setItem('converted_leads_data', JSON.stringify(updatedConvertedLeads));
+      // Dispatch events to update other components
+      window.dispatchEvent(new CustomEvent('subscribersUpdated'));
+      window.dispatchEvent(new CustomEvent('leadsUpdated'));
       
-      toast.success(`${lead.name} has been successfully converted to a subscriber!`);
-      console.log('Lead converted to subscriber:', newSubscriber);
+      toast.success(`Successfully converted ${selectedLead.name} to subscriber!`);
+      setShowConvertModal(false);
+      setSelectedLead(null);
+      
     } catch (error) {
       console.error('Error converting lead to subscriber:', error);
-      toast.error('Failed to convert lead to subscriber. Please try again.');
+      toast.error('Failed to convert lead. Please try again.');
     }
   };
 
-  const handleExportPerformanceSheet = (branchName: string) => {
-    const branch = branchPerformance.find(b => b.branchName === branchName);
-    if (!branch) {
-      toast.error('Branch data not found');
-      return;
+  const handleCall = (lead: Lead) => {
+    if (navigator.userAgent.match(/Mobile|Android|iPhone|iPad/)) {
+      window.location.href = `tel:${lead.phone}`;
+    } else {
+      navigator.clipboard.writeText(lead.phone).then(() => {
+        toast.success(`Phone number ${lead.phone} copied to clipboard`);
+      }).catch(() => {
+        toast.error('Could not copy phone number');
+      });
     }
+    toast.success(`Call initiated to ${lead.name}`);
+  };
 
-    // Generate CSV content
-    const csvContent = [
-      ['Branch Performance Report'],
-      ['Generated on:', new Date().toLocaleDateString()],
-      [''],
-      ['Branch Information'],
-      ['Branch Name', branch.branchName],
-      ['Branch Code', branch.branchCode],
-      ['Total Leads', branch.totalLeads.toString()],
-      ['Converted Leads', branch.convertedLeads.toString()],
-      ['Conversion Rate', `${branch.conversionRate.toFixed(1)}%`],
-      ['Total Value', `₹${branch.totalValue.toLocaleString('en-IN')}`],
-      ['Average Deal Size', `₹${branch.avgDealSize.toLocaleString('en-IN')}`],
-      ['Branch Rank', `#${branch.rank}`],
-      ['Performance Badge', branch.badge],
-      [''],
-      ['Agent Performance'],
-      ['Rank', 'Agent Name', 'Total Leads', 'Converted', 'Conversion Rate', 'Total Value', 'Badge'],
-      ...branch.agents.map(agent => [
-        agent.rank.toString(),
-        agent.agentName,
-        agent.totalLeads.toString(),
-        agent.convertedLeads.toString(),
-        `${agent.conversionRate.toFixed(1)}%`,
-        `₹${agent.totalValue.toLocaleString('en-IN')}`,
-        agent.badge
-      ]),
-      [''],
-      ['Employee Information'],
-      ['Name', 'Designation', 'Department', 'Email', 'Phone'],
-      ...branch.employees.map(emp => [
-        emp.name,
-        emp.designation,
-        emp.department,
-        emp.email,
-        emp.phone
-      ])
-    ].map(row => row.join(',')).join('\n');
+  const handleEmail = (lead: Lead) => {
+    const subject = encodeURIComponent(`Follow-up: ${lead.company || lead.name} - Chit Fund Conversion`);
+    const body = encodeURIComponent(`Dear ${lead.name},
 
-    // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${branchName.replace(/\s+/g, '_')}_Performance_Report_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+Thank you for your continued interest in our chit fund schemes. I wanted to follow up on our recent discussions and help you move forward with your investment.
+
+Based on our conversations, I believe you're ready to join our chit fund family. I'm here to assist you with the enrollment process and answer any final questions you may have.
+
+Would you like to schedule a call to complete your subscription?
+
+Best regards,
+${lead.assignedTo}
+Ramnirmalchits Financial Services`);
     
-    toast.success(`Performance sheet exported for ${branchName}`);
+    const mailtoLink = `mailto:${lead.email}?subject=${subject}&body=${body}`;
+    window.location.href = mailtoLink;
+    toast.success(`Email client opened for ${lead.name}`);
   };
 
-  const handleSendPerformanceEmails = (branchName: string) => {
-    const branch = branchPerformance.find(b => b.branchName === branchName);
-    if (!branch) {
-      toast.error('Branch data not found');
-      return;
-    }
-
-    // Send emails to all agents in the branch
-    branch.agents.forEach(agent => {
-      const subject = encodeURIComponent(`Performance Report - ${new Date().toLocaleDateString()}`);
-      const body = encodeURIComponent(`Dear ${agent.agentName},
-
-Here's your performance summary for ${branchName}:
-
-🏆 Your Performance:
-• Rank: #${agent.rank} in ${branchName}
-• Total Leads: ${agent.totalLeads}
-• Converted Leads: ${agent.convertedLeads}
-• Conversion Rate: ${agent.conversionRate.toFixed(1)}%
-• Total Value: ₹${agent.totalValue.toLocaleString('en-IN')}
-• Performance Badge: ${agent.badge}
-
-🏢 Branch Performance:
-• Branch Rank: #${branch.rank}
-• Branch Conversion Rate: ${branch.conversionRate.toFixed(1)}%
-• Total Branch Value: ₹${branch.totalValue.toLocaleString('en-IN')}
-
-Keep up the excellent work!
-
-Best regards,
-Management Team
-Ramnirmalchits Financial Services`);
-      
-      // Find agent email from agents data
-      const agentData = getAgentsByBranch(branchName).find(a => `${a.firstName} ${a.lastName}` === agent.agentName);
-      if (agentData) {
-        const mailtoLink = `mailto:${agentData.email}?subject=${subject}&body=${body}`;
-        window.open(mailtoLink, '_blank');
-      }
-    });
-
-    // Send emails to all employees in the branch
-    branch.employees.forEach(employee => {
-      const subject = encodeURIComponent(`Branch Performance Update - ${new Date().toLocaleDateString()}`);
-      const body = encodeURIComponent(`Dear ${employee.name},
-
-Here's the performance update for ${branchName}:
-
-🏢 Branch Performance Summary:
-• Branch Rank: #${branch.rank}
-• Total Leads: ${branch.totalLeads}
-• Converted Leads: ${branch.convertedLeads}
-• Conversion Rate: ${branch.conversionRate.toFixed(1)}%
-• Total Value: ₹${branch.totalValue.toLocaleString('en-IN')}
-• Performance Badge: ${branch.badge}
-
-👥 Team Strength:
-• Agents: ${branch.agentCount}
-• Employees: ${branch.employeeCount}
-• Average Deal Size: ₹${branch.avgDealSize.toLocaleString('en-IN')}
-
-Thank you for your contribution to our success!
-
-Best regards,
-Management Team
-Ramnirmalchits Financial Services`);
-      
-      const mailtoLink = `mailto:${employee.email}?subject=${subject}&body=${body}`;
-      window.open(mailtoLink, '_blank');
-    });
-
-    toast.success(`Performance emails sent to ${branch.agentCount + branch.employeeCount} team members in ${branchName}`);
-  };
-
-  const tabs = [
-    { id: 'converted-leads', name: 'Converted Leads', icon: CheckCircle, count: convertedLeadsData.length },
-    { id: 'sales-performance', name: 'Sales & Ranking Performance', icon: Trophy, count: agentPerformance.length },
-    { id: 'branch-performance', name: 'Branch Performance Analysis', icon: Building, count: branchPerformance.length }
-  ];
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'converted-leads':
-        return (
-          <ConvertedLeadsTable 
-            leads={convertedLeadsData}
-            onConvertToSubscriber={handleConvertToSubscriber}
-          />
-        );
-
-      case 'sales-performance':
-        return (
-          <div className="space-y-6">
-            {/* Top 3 Podium */}
-            <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
-              <h3 className="text-lg font-semibold text-slate-50 mb-6 flex items-center">
-                <Trophy className="h-5 w-5 mr-2" />
-                Top Performers Podium
-              </h3>
-              <div className="flex items-end justify-center space-x-8">
-                {/* 2nd Place */}
-                {agentPerformance[1] && (
-                  <div className="text-center">
-                    <div className="w-20 h-16 bg-gray-500/20 rounded-t-lg flex items-center justify-center border border-yellow-400/30 mb-2">
-                      <Medal className="h-8 w-8 text-gray-300" />
-                    </div>
-                    <div className="bg-slate-700/30 rounded-lg p-3 border border-yellow-400/20">
-                      <p className="text-sm font-semibold text-slate-50">{agentPerformance[1].agentName}</p>
-                      <p className="text-xs text-slate-400">{agentPerformance[1].convertedLeads} conversions</p>
-                      <p className="text-xs text-gray-300">{agentPerformance[1].conversionRate.toFixed(1)}% rate</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* 1st Place */}
-                {agentPerformance[0] && (
-                  <div className="text-center">
-                    <div className="w-24 h-20 bg-yellow-500/20 rounded-t-lg flex items-center justify-center border border-yellow-400/50 mb-2">
-                      <Crown className="h-10 w-10 text-yellow-400" />
-                    </div>
-                    <div className="bg-slate-700/30 rounded-lg p-4 border border-yellow-400/30">
-                      <p className="text-lg font-bold text-slate-50">{agentPerformance[0].agentName}</p>
-                      <p className="text-sm text-yellow-400">{agentPerformance[0].convertedLeads} conversions</p>
-                      <p className="text-xs text-slate-500">🏆 {agentPerformance[0].conversionRate.toFixed(1)}% rate</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* 3rd Place */}
-                {agentPerformance[2] && (
-                  <div className="text-center">
-                    <div className="w-20 h-12 bg-orange-500/20 rounded-t-lg flex items-center justify-center border border-yellow-400/30 mb-2">
-                      <Award className="h-6 w-6 text-orange-400" />
-                    </div>
-                    <div className="bg-slate-700/30 rounded-lg p-3 border border-yellow-400/20">
-                      <p className="text-sm font-semibold text-slate-50">{agentPerformance[2].agentName}</p>
-                      <p className="text-xs text-slate-400">{agentPerformance[2].convertedLeads} conversions</p>
-                      <p className="text-xs text-orange-300">{agentPerformance[2].conversionRate.toFixed(1)}% rate</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* All Agent Performance Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {agentPerformance.map((performance) => (
-                <AgentPerformanceCard key={performance.agentName} performance={performance} />
-              ))}
-            </div>
-          </div>
-        );
-      
-      case 'branch-performance':
-        return (
-          <div className="space-y-6">
-            {/* Top 3 Branch Podium */}
-            <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
-              <h3 className="text-lg font-semibold text-slate-50 mb-6 flex items-center">
-                <Building className="h-5 w-5 mr-2" />
-                Top Performing Branches
-              </h3>
-              <div className="flex items-end justify-center space-x-8">
-                {/* 2nd Place */}
-                {branchPerformance[1] && (
-                  <div className="text-center">
-                    <div className="w-20 h-16 bg-gray-500/20 rounded-t-lg flex items-center justify-center border border-yellow-400/30 mb-2">
-                      <Medal className="h-8 w-8 text-gray-300" />
-                    </div>
-                    <div className="bg-slate-700/30 rounded-lg p-3 border border-yellow-400/20">
-                      <p className="text-sm font-semibold text-slate-50">{branchPerformance[1].branchName}</p>
-                      <p className="text-xs text-slate-400">{branchPerformance[1].convertedLeads} conversions</p>
-                      <p className="text-xs text-gray-300">{branchPerformance[1].conversionRate.toFixed(1)}% rate</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* 1st Place */}
-                {branchPerformance[0] && (
-                  <div className="text-center">
-                    <div className="w-24 h-20 bg-yellow-500/20 rounded-t-lg flex items-center justify-center border border-yellow-400/50 mb-2">
-                      <Crown className="h-10 w-10 text-yellow-400" />
-                    </div>
-                    <div className="bg-slate-700/30 rounded-lg p-4 border border-yellow-400/30">
-                      <p className="text-lg font-bold text-slate-50">{branchPerformance[0].branchName}</p>
-                      <p className="text-sm text-yellow-400">{branchPerformance[0].convertedLeads} conversions</p>
-                      <p className="text-xs text-slate-500">🏆 {branchPerformance[0].conversionRate.toFixed(1)}% rate</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* 3rd Place */}
-                {branchPerformance[2] && (
-                  <div className="text-center">
-                    <div className="w-20 h-12 bg-orange-500/20 rounded-t-lg flex items-center justify-center border border-yellow-400/30 mb-2">
-                      <Award className="h-6 w-6 text-orange-400" />
-                    </div>
-                    <div className="bg-slate-700/30 rounded-lg p-3 border border-yellow-400/20">
-                      <p className="text-sm font-semibold text-slate-50">{branchPerformance[2].branchName}</p>
-                      <p className="text-xs text-slate-400">{branchPerformance[2].convertedLeads} conversions</p>
-                      <p className="text-xs text-orange-300">{branchPerformance[2].conversionRate.toFixed(1)}% rate</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* All Branch Performance Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {branchPerformance.map((performance) => (
-                <BranchPerformanceCard 
-                  key={performance.branchName} 
-                  performance={performance}
-                  onExportSheet={handleExportPerformanceSheet}
-                  onSendEmails={handleSendPerformanceEmails}
-                />
-              ))}
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
+  const canConvert = (lead: Lead) => {
+    return ['qualified', 'proposal', 'negotiation'].includes(lead.status);
   };
 
   return (
@@ -1101,104 +569,382 @@ Ramnirmalchits Financial Services`);
         <div>
           <h1 className="text-2xl font-bold text-slate-50">Conversions & Win Analysis</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Track successful conversions, sales performance, and convert leads to subscribers
+            Track successful conversions and sales performance with lead-to-subscriber conversion
           </p>
         </div>
-        <select
-          value={selectedPeriod}
-          onChange={(e) => setSelectedPeriod(e.target.value)}
-          className="px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
-        >
-          <option value="current-month">Current Month</option>
-          <option value="last-month">Last Month</option>
-          <option value="current-quarter">Current Quarter</option>
-          <option value="current-year">Current Year</option>
-        </select>
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b border-yellow-400/30 bg-slate-800/40 backdrop-blur-xl flex-shrink-0">
-        <nav className="flex space-x-4 px-4 overflow-x-auto" aria-label="Tabs">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-400'
-                    : 'border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-300'
-                } whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm flex items-center transition-all`}
-              >
-                <Icon className="h-4 w-4 mr-2" />
-                {tab.name}
-                <span className="ml-2 bg-slate-700/50 text-slate-300 px-2 py-1 rounded-full text-xs">
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
-        </nav>
+        <div className="flex space-x-3">
+          <button className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export Report
+          </button>
+          <button 
+            onClick={() => navigate('/leads-new')}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-all"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Lead
+          </button>
+        </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-none">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {conversionStats.map((stat, index) => {
-            const Icon = stat.icon;
-            return (
-              <div key={index} className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-slate-400 text-sm">{stat.label}</p>
-                    <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
-                    <p className="text-green-400 text-sm mt-1">{stat.change}</p>
-                  </div>
-                  <div className="p-4 bg-slate-700/30 rounded-xl border border-yellow-400/30">
-                    <Icon className={`h-8 w-8 ${stat.color}`} />
-                  </div>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-14 gap-4">
+          <div className="bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Total Leads</p>
+                <p className="text-2xl font-bold text-slate-50">{stats.total}</p>
               </div>
-            );
-          })}
+              <Users className="h-8 w-8 text-blue-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">New</p>
+                <p className="text-2xl font-bold text-blue-400">{stats.new}</p>
+              </div>
+              <Star className="h-8 w-8 text-blue-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Contacted</p>
+                <p className="text-2xl font-bold text-yellow-400">{stats.contacted}</p>
+              </div>
+              <Phone className="h-8 w-8 text-yellow-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Qualified</p>
+                <p className="text-2xl font-bold text-green-400">{stats.qualified}</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Proposal</p>
+                <p className="text-2xl font-bold text-purple-400">{stats.proposal}</p>
+              </div>
+              <FileText className="h-8 w-8 text-purple-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Negotiation</p>
+                <p className="text-2xl font-bold text-orange-400">{stats.negotiation}</p>
+              </div>
+              <Target className="h-8 w-8 text-orange-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Won</p>
+                <p className="text-2xl font-bold text-emerald-400">{stats.won}</p>
+              </div>
+              <Award className="h-8 w-8 text-emerald-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Lost</p>
+                <p className="text-2xl font-bold text-red-400">{stats.lost}</p>
+              </div>
+              <XCircle className="h-8 w-8 text-red-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Conversion Rate</p>
+                <p className="text-2xl font-bold text-green-400">{stats.conversionRate.toFixed(1)}%</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-green-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Ready to Convert</p>
+                <p className="text-2xl font-bold text-purple-400">{stats.readyToConvert}</p>
+              </div>
+              <UserPlus className="h-8 w-8 text-purple-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">High Priority</p>
+                <p className="text-2xl font-bold text-red-400">{stats.highPriority}</p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-red-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-yellow-400/30 md:col-span-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Pipeline Value</p>
+                <p className="text-xl font-bold text-blue-400">{formatCurrency(stats.pipelineValue)}</p>
+              </div>
+              <DollarSign className="h-8 w-8 text-blue-400" />
+            </div>
+          </div>
+          <div className="bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-yellow-400/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Won Value</p>
+                <p className="text-xl font-bold text-emerald-400">{formatCurrency(stats.wonValue)}</p>
+              </div>
+              <Award className="h-8 w-8 text-emerald-400" />
+            </div>
+          </div>
         </div>
 
-        {/* Tab Content */}
-        {renderTabContent()}
+        {/* Filters */}
+        <div className="bg-slate-800/40 backdrop-blur-xl rounded-xl p-4 border border-yellow-400/30">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Search leads..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg w-full text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm"
+              />
+            </div>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm"
+            >
+              <option value="all">All Status</option>
+              <option value="new">New</option>
+              <option value="contacted">Contacted</option>
+              <option value="qualified">Qualified</option>
+              <option value="proposal">Proposal</option>
+              <option value="negotiation">Negotiation</option>
+              <option value="won">Won</option>
+              <option value="lost">Lost</option>
+            </select>
+            <select
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value)}
+              className="px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm"
+            >
+              <option value="all">All Priority</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+            <select
+              value={filterSource}
+              onChange={(e) => setFilterSource(e.target.value)}
+              className="px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm"
+            >
+              <option value="all">All Sources</option>
+              <option value="website">Website</option>
+              <option value="referral">Referral</option>
+              <option value="cold-call">Cold Call</option>
+              <option value="social-media">Social Media</option>
+              <option value="advertisement">Advertisement</option>
+            </select>
+            <div className="text-sm text-slate-400">
+              Showing: <span className="font-semibold text-slate-50">{filteredLeads.length}</span> leads
+            </div>
+          </div>
+        </div>
 
-        {/* Charts Placeholder */}
+        {/* Leads Table */}
+        <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-yellow-400/30 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-700/50 border-b border-yellow-400/20">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Lead</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Contact</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Value</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Agent</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Source</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-yellow-400/20">
+                {filteredLeads.map((lead) => (
+                  <tr key={lead.id} className="hover:bg-slate-700/20 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-3">
+                        <div className="h-10 w-10 bg-slate-600/50 rounded-full flex items-center justify-center text-slate-50 font-medium border border-yellow-400/30">
+                          {lead.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-50">{lead.name}</p>
+                          <p className="text-xs text-slate-400">{lead.company || 'Individual'}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <p className="text-sm text-slate-300">{lead.email}</p>
+                        <p className="text-xs text-slate-400">{lead.phone}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-3 h-3 rounded-full ${getPriorityColor(lead.priority)}`}></div>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}>
+                          {lead.status.toUpperCase()}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <p className="text-sm font-semibold text-green-400">{formatCurrency(lead.value)}</p>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <p className="text-sm text-slate-50">{lead.assignedTo}</p>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <p className="text-sm text-slate-50 capitalize">{lead.source.replace('-', ' ')}</p>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => navigate(`/leads-360?id=${lead.id}`)}
+                          className="text-blue-400 hover:text-blue-300"
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleCall(lead)}
+                          className="text-green-400 hover:text-green-300"
+                          title="Call Lead"
+                        >
+                          <Phone className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEmail(lead)}
+                          className="text-purple-400 hover:text-purple-300"
+                          title="Send Email"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </button>
+                        {canConvert(lead) && (
+                          <button
+                            onClick={() => handleConvertLead(lead)}
+                            className="text-emerald-400 hover:text-emerald-300"
+                            title="Convert to Subscriber"
+                          >
+                            <UserPlus className="h-4 w-4" />
+                          </button>
+                        )}
+                        {lead.status === 'won' && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800 border border-green-200">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Converted
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Conversion Analytics */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
             <h3 className="text-lg font-semibold text-slate-50 mb-4 flex items-center">
-              <BarChart3 className="h-5 w-5 mr-2" />
-              Conversion Trends
+              <TrendingUp className="h-5 w-5 mr-2" />
+              Conversion Funnel
             </h3>
-            <div className="h-64 flex items-center justify-center border-2 border-dashed border-yellow-400/30 rounded-xl">
-              <div className="text-center">
-                <BarChart3 className="h-12 w-12 mx-auto text-slate-400 mb-2" />
-                <p className="text-slate-400">Conversion Chart</p>
-                <p className="text-slate-500 text-sm">Interactive chart coming soon</p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-blue-500/10 rounded-lg border border-blue-500/30">
+                <span className="text-blue-400 font-medium">New Leads</span>
+                <span className="text-blue-400 font-bold">{stats.new}</span>
+              </div>
+              <div className="flex items-center justify-center">
+                <ArrowRight className="h-4 w-4 text-slate-500" />
+              </div>
+              <div className="flex items-center justify-between p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
+                <span className="text-yellow-400 font-medium">Contacted</span>
+                <span className="text-yellow-400 font-bold">{stats.contacted}</span>
+              </div>
+              <div className="flex items-center justify-center">
+                <ArrowRight className="h-4 w-4 text-slate-500" />
+              </div>
+              <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg border border-green-500/30">
+                <span className="text-green-400 font-medium">Qualified</span>
+                <span className="text-green-400 font-bold">{stats.qualified}</span>
+              </div>
+              <div className="flex items-center justify-center">
+                <ArrowRight className="h-4 w-4 text-slate-500" />
+              </div>
+              <div className="flex items-center justify-between p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/30">
+                <span className="text-emerald-400 font-medium">Won</span>
+                <span className="text-emerald-400 font-bold">{stats.won}</span>
               </div>
             </div>
           </div>
 
           <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
             <h3 className="text-lg font-semibold text-slate-50 mb-4 flex items-center">
-              <PieChart className="h-5 w-5 mr-2" />
-              Win/Loss Analysis
+              <Award className="h-5 w-5 mr-2" />
+              Win Analysis
             </h3>
-            <div className="h-64 flex items-center justify-center border-2 border-dashed border-yellow-400/30 rounded-xl">
-              <div className="text-center">
-                <PieChart className="h-12 w-12 mx-auto text-slate-400 mb-2" />
-                <p className="text-slate-400">Win/Loss Chart</p>
-                <p className="text-slate-500 text-sm">Interactive chart coming soon</p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Conversion Rate</span>
+                <span className="text-green-400 font-bold text-2xl">{stats.conversionRate.toFixed(1)}%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Average Deal Size</span>
+                <span className="text-blue-400 font-semibold">{formatCurrency(stats.avgDealSize)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Total Won Value</span>
+                <span className="text-emerald-400 font-semibold">{formatCurrency(stats.wonValue)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Ready to Convert</span>
+                <span className="text-purple-400 font-semibold">{stats.readyToConvert} leads</span>
               </div>
             </div>
           </div>
         </div>
+
+        {filteredLeads.length === 0 && (
+          <div className="text-center py-12">
+            <Users className="h-12 w-12 mx-auto text-slate-500 mb-4" />
+            <h3 className="text-lg font-medium text-slate-50 mb-2">No leads found</h3>
+            <p className="text-sm text-slate-400">Try adjusting your search criteria or add a new lead.</p>
+          </div>
+        )}
       </div>
+
+      {/* Convert to Subscriber Modal */}
+      <ConvertToSubscriberModal
+        isOpen={showConvertModal}
+        onClose={() => {
+          setShowConvertModal(false);
+          setSelectedLead(null);
+        }}
+        onConvert={handleConvertToSubscriber}
+        lead={selectedLead}
+      />
     </div>
   );
 };
