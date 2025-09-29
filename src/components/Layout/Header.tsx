@@ -292,6 +292,23 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ isOpen, onClose }) =>
 const SearchDropdown: React.FC<SearchDropdownProps> = ({ isOpen, searchTerm, onClose, onNavigate }) => {
   const { user } = useAuth();
   
+  // Define getPopularPages function before using it in useMemo
+  const getPopularPages = () => {
+    const popularPages = [
+      { id: 'dashboard', name: 'Dashboard', icon: navigation[0].icon, module: 'Overview' },
+      { id: 'leads-all', name: 'All Leads', icon: navigation[1].children?.[0].icon, module: 'Leads & Sales' },
+      { id: 'leads-kanban', name: 'Leads Pipeline', icon: navigation[1].children?.[1].icon, module: 'Leads & Sales' },
+      { id: 'tasks-my', name: 'My Tasks', icon: navigation[2].children?.[0].icon, module: 'Tasks & Tickets' },
+      { id: 'chit-list', name: 'Chit Groups', icon: navigation[7].children?.[2].icon, module: 'Chit Operations' },
+      { id: 'subscribers-all', name: 'All Subscribers', icon: navigation[5].children?.[0].icon, module: 'Subscribers' },
+      { id: 'agents-directory', name: 'Agent Directory', icon: navigation[6].children?.[0].icon, module: 'Agents' },
+      { id: 'hrms-directory', name: 'Employee Directory', icon: navigation[8].children?.[0].icon, module: 'HRMS' },
+      { id: 'reports-dashboard', name: 'Reports Dashboard', icon: navigation[9].children?.[0].icon, module: 'Reports' },
+      { id: 'company-profile-branding', name: 'Company Profile', icon: navigation[10].children?.[0].icon, module: 'Settings' }
+    ];
+    return popularPages;
+  };
+
   // Get main module pages for display
   const mainModulePages = useMemo(() => {
     if (!user) return [];
@@ -316,22 +333,6 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({ isOpen, searchTerm, onC
     return filteredPages;
   }, [user?.permissions]);
   
-  const getPopularPages = () => {
-    const popularPages = [
-      { id: 'dashboard', name: 'Dashboard', icon: navigation[0].icon, module: 'Overview' },
-      { id: 'leads-all', name: 'All Leads', icon: navigation[1].children?.[0].icon, module: 'Leads & Sales' },
-      { id: 'leads-kanban', name: 'Leads Pipeline', icon: navigation[1].children?.[1].icon, module: 'Leads & Sales' },
-      { id: 'tasks-my', name: 'My Tasks', icon: navigation[2].children?.[0].icon, module: 'Tasks & Tickets' },
-      { id: 'chit-list', name: 'Chit Groups', icon: navigation[7].children?.[2].icon, module: 'Chit Operations' },
-      { id: 'subscribers-all', name: 'All Subscribers', icon: navigation[5].children?.[0].icon, module: 'Subscribers' },
-      { id: 'agents-directory', name: 'Agent Directory', icon: navigation[6].children?.[0].icon, module: 'Agents' },
-      { id: 'hrms-directory', name: 'Employee Directory', icon: navigation[8].children?.[0].icon, module: 'HRMS' },
-      { id: 'reports-dashboard', name: 'Reports Dashboard', icon: navigation[9].children?.[0].icon, module: 'Reports' },
-      { id: 'company-profile-branding', name: 'Company Profile', icon: navigation[10].children?.[0].icon, module: 'Settings' }
-    ];
-    return popularPages;
-  };
-
   const filteredItems = useMemo(() => {
     if (!user) return [];
     
