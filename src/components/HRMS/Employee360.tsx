@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarSign, User, Shield, FileText, Activity, Search, Save, X, Eye, Trash2, Key, Lock, EyeOff } from 'lucide-react';
+import { ArrowLeft, Edit, Save, X, Plus, User, CreditCard, Shield, Phone, MapPin, Mail, Building, Calendar, DollarSign, Users, Star, CheckCircle, XCircle, AlertTriangle, Clock, Award, Target, TrendingUp, Activity, Filter, Download, Upload, MoreVertical, Eye, Trash2, Key, Lock, EyeOff } from 'lucide-react';
 import { Employee } from '../../types/hrms';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, DollarSign, User, CreditCard, FileText, Clock, Award, Target, TrendingUp, Users, CheckCircle, AlertTriangle, Download, Upload, Star, Briefcase, Shield, Building, Activity, Eye, Send, MessageSquare, Save, X, Key, Lock, EyeOff, Search, Filter, MoreVertical, Trash2 } from 'lucide-react';
 import { getEmployees, saveEmployees, updateEmployee, deleteEmployee, initializeEmployeesData } from '../../data/employees.mock';
 import { getBranches } from '../../data/branches.mock';
 import { UserCategory } from '../../data/users.mock';
+import React, { useState } from 'react';
+import { toast } from 'react-hot-toast';
 
 interface Employee360Props {
   employeeId: string;
@@ -54,6 +55,34 @@ const EmployeeTable: React.FC<{
 
   const uniqueDepartments = [...new Set(employees.map(e => e.department).filter(Boolean))];
   const uniqueBranches = [...new Set(employees.map(e => e.branch).filter(Boolean))];
+
+  const handleCall = (employee: Employee) => {
+    if (navigator.userAgent.match(/Mobile|Android|iPhone|iPad/)) {
+      window.location.href = `tel:${employee.phone}`;
+    } else {
+      navigator.clipboard.writeText(employee.phone).then(() => {
+        toast.success(`Phone number ${employee.phone} copied to clipboard`);
+      }).catch(() => {
+        toast.error('Could not copy phone number');
+      });
+    }
+    toast.success(`Call initiated to ${employee.firstName} ${employee.lastName}`);
+  };
+
+  const handleEmail = (employee: Employee) => {
+    const subject = encodeURIComponent(`Follow-up: ${employee.firstName} ${employee.lastName} - HR Communication`);
+    const body = encodeURIComponent(`Dear ${employee.firstName},
+
+I hope this email finds you well.
+
+Best regards,
+HR Team
+Ramnirmalchits Financial Services`);
+    
+    const mailtoLink = `mailto:${employee.email}?subject=${subject}&body=${body}`;
+    window.location.href = mailtoLink;
+    toast.success(`Email client opened for ${employee.firstName} ${employee.lastName}`);
+  };
 
   return (
     <div className="space-y-4">
@@ -180,222 +209,6 @@ const EmployeeTable: React.FC<{
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {filteredEmployees.length === 0 && (
-        <div className="text-center py-12">
-          <Users className="h-12 w-12 mx-auto text-slate-500 mb-4" />
-          <h3 className="text-lg font-medium text-slate-50 mb-2">No employees found</h3>
-          <p className="text-sm text-slate-400">Try adjusting your search criteria or add a new employee.</p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-interface UserCredentials {
-  username: string;
-  password: string;
-  confirmPassword: string;
-  role: UserCategory;
-  permissions: string[];
-  isActive: boolean;
-}
-
-const EmployeeTable2: React.FC<{ 
-  employees: Employee[]; 
-  onEmployeeSelect: (employeeId: string) => void;
-  selectedEmployeeId?: string;
-}> = ({ employees, onEmployeeSelect, selectedEmployeeId }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterBranch, setFilterBranch] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-
-  const branches = getBranches();
-  const uniqueBranches = [...new Set(employees.map(e => e.branch))];
-
-  const filteredEmployees = employees.filter(employee => {
-    const matchesSearch = employee.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         employee.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         employee.employeeId.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesBranch = filterBranch === 'all' || employee.branch === filterBranch;
-    const matchesStatus = filterStatus === 'all' || employee.status === filterStatus;
-    
-    return matchesSearch && matchesBranch && matchesStatus;
-  });
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'inactive': return 'bg-gray-100 text-gray-800';
-      case 'terminated': return 'bg-red-100 text-red-800';
-      case 'on-leave': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const handleCall = (employee: Employee) => {
-    if (navigator.userAgent.match(/Mobile|Android|iPhone|iPad/)) {
-      window.location.href = `tel:${employee.phone}`;
-    } else {
-      navigator.clipboard.writeText(employee.phone).then(() => {
-        toast.success(`Phone number ${employee.phone} copied to clipboard`);
-      }).catch(() => {
-        toast.error('Could not copy phone number');
-      });
-    }
-    toast.success(`Call initiated to ${employee.firstName} ${employee.lastName}`);
-  };
-
-  const handleEmail = (employee: Employee) => {
-    const subject = encodeURIComponent(`Follow-up: ${employee.firstName} ${employee.lastName} - HR Communication`);
-    const body = encodeURIComponent(`Dear ${employee.firstName},
-
-I hope this email finds you well.
-
-Best regards,
-HR Team
-Ramnirmalchits Financial Services`);
-    
-    const mailtoLink = `mailto:${employee.email}?subject=${subject}&body=${body}`;
-    window.location.href = mailtoLink;
-    toast.success(`Email client opened for ${employee.firstName} ${employee.lastName}`);
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* Filters */}
-      <div className="bg-slate-800/40 backdrop-blur-xl rounded-xl p-4 border border-yellow-400/30">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Search employees..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg w-full text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm"
-            />
-          </div>
-          <select
-            value={filterBranch}
-            onChange={(e) => setFilterBranch(e.target.value)}
-            className="px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm"
-          >
-            <option value="all">All Branches</option>
-            {uniqueBranches.map(branch => (
-              <option key={branch} value={branch}>{branch}</option>
-            ))}
-          </select>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="terminated">Terminated</option>
-            <option value="on-leave">On Leave</option>
-          </select>
-          <div className="text-sm text-slate-400 flex items-center">
-            Showing: <span className="font-semibold ml-1 text-slate-50">{filteredEmployees.length}</span> employees
-          </div>
-        </div>
-      </div>
-
-      {/* Employees Table */}
-      <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-yellow-400/30 overflow-hidden">
-        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-          <table className="w-full">
-            <thead className="bg-slate-700/50 border-b border-yellow-400/20 sticky top-0">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Employee</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Department</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Branch</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Contact</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Salary</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-yellow-400/20">
-              {filteredEmployees.map((employee) => (
-                <tr 
-                  key={employee.id} 
-                  className={`hover:bg-slate-700/20 transition-colors cursor-pointer ${
-                    selectedEmployeeId === employee.id ? 'bg-blue-500/10 border-l-4 border-l-blue-500' : ''
-                  }`}
-                  onClick={() => onEmployeeSelect(employee.id)}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center space-x-3">
-                      <div className="h-10 w-10 bg-slate-600/50 rounded-full flex items-center justify-center text-slate-50 font-medium border border-yellow-400/30">
-                        {employee.firstName.charAt(0)}{employee.lastName.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-50">{employee.firstName} {employee.lastName}</p>
-                        <p className="text-xs text-slate-400">{employee.employeeId} • {employee.designation}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <p className="text-sm font-medium text-slate-50">{employee.department}</p>
-                      <p className="text-xs text-slate-400">{employee.employmentType}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <p className="text-sm font-medium text-slate-50">{employee.branch}</p>
-                      <p className="text-xs text-slate-400">Manager: {employee.reportingManager}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <p className="text-sm text-slate-50">{employee.email}</p>
-                      <p className="text-xs text-slate-400">{employee.phone}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <p className="text-sm font-medium text-slate-50">{formatCurrency(employee.basicSalary)}</p>
-                      <p className="text-xs text-green-400">Basic</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(employee.status)}`}>
-                      {employee.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEmployeeSelect(employee.id);
-                        }}
-                        className="text-blue-400 hover:text-blue-300"
-                        title="View Details"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -424,9 +237,26 @@ Ramnirmalchits Financial Services`);
           </table>
         </div>
       </div>
+
+      {filteredEmployees.length === 0 && (
+        <div className="text-center py-12">
+          <Users className="h-12 w-12 mx-auto text-slate-500 mb-4" />
+          <h3 className="text-lg font-medium text-slate-50 mb-2">No employees found</h3>
+          <p className="text-sm text-slate-400">Try adjusting your search criteria or add a new employee.</p>
+        </div>
+      )}
     </div>
   );
 };
+
+interface UserCredentials {
+  username: string;
+  password: string;
+  confirmPassword: string;
+  role: UserCategory;
+  permissions: string[];
+  isActive: boolean;
+}
 
 const EditEmployeeForm: React.FC<{
   employee: Employee;
@@ -469,7 +299,6 @@ const EditEmployeeForm: React.FC<{
     'Agents': ['dashboard.view', 'leads.view', 'leads.create'],
     'Subscribers': ['dashboard.view', 'profile.view']
   };
-
   const handleInputChange = (field: keyof Employee, value: any) => {
     setFormData(prev => ({
       ...prev,
@@ -934,7 +763,6 @@ const EditEmployeeForm: React.FC<{
             </div>
           )}
         </div>
-
         <div>
           <label className="block text-sm font-medium text-slate-50 mb-2">Address</label>
           <textarea
@@ -1022,7 +850,7 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
     const foundEmployee = loadedEmployees.find(e => e.id === actualEmployeeId || e.employeeId === actualEmployeeId);
     if (foundEmployee) {
       setSelectedEmployee(foundEmployee);
-      console.log('Employee360: Found employee from URL:', `${foundEmployee.firstName} ${foundEmployee.lastName}`);
+        console.log('Employee360: Found employee from URL:', `${foundEmployee.firstName} ${foundEmployee.lastName}`);
       setSelectedEmployeeId(foundEmployee.id);
       if (actualEmployeeId && !shouldEdit) {
         setActiveTab('overview');
@@ -1052,32 +880,14 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
       }
     };
 
-    const handleEmployeeUpdate = () => {
-      console.log('Employee360: Storage changed, reloading employees...');
-      const updatedEmployees = getEmployees();
-      console.log('Employee360: Storage update - employees count:', updatedEmployees.length);
-      console.log('Employee360: Storage update - employee names:', updatedEmployees.map(e => `${e.firstName} ${e.lastName}`));
-      setEmployees(updatedEmployees);
-      
-      if (selectedEmployeeId) {
-        const updatedEmployee = updatedEmployees.find(e => e.id === selectedEmployeeId);
-        if (updatedEmployee) {
-          console.log('Employee360: Updated selected employee:', `${updatedEmployee.firstName} ${updatedEmployee.lastName}`);
-          setSelectedEmployee(updatedEmployee);
-        }
-      }
-    };
-
-    window.addEventListener('storage', handleEmployeeUpdate);
-    window.addEventListener('employeesUpdated', handleEmployeeUpdate);
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('employeesUpdated', handleStorageChange);
     window.addEventListener('employeeDataChanged', handleStorageChange);
-    window.addEventListener('employeeDataChanged', handleEmployeeUpdate);
     
     return () => {
-      window.removeEventListener('storage', handleEmployeeUpdate);
-      window.removeEventListener('employeesUpdated', handleEmployeeUpdate);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('employeesUpdated', handleStorageChange);
       window.removeEventListener('employeeDataChanged', handleStorageChange);
-      window.removeEventListener('employeeDataChanged', handleEmployeeUpdate);
     };
   }, [selectedEmployeeId]);
 
