@@ -4,6 +4,7 @@ import { Search, ChevronRight } from 'lucide-react';
 import { NavigationItem, navigation } from '../../config/navigation';
 import { getRouteByPath } from '../../config/routes';
 import { useAuth, AppRole } from '../../contexts/AuthContext';
+import { useEffect } from 'react';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -217,6 +218,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [flyoutItem, setFlyoutItem] = useState<NavigationItem | null>(null);
   const [flyoutPosition, setFlyoutPosition] = useState({ top: 0, left: 0 });
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      const savedAvatar = localStorage.getItem(`userAvatar_${user.id}`);
+      setUserAvatar(savedAvatar);
+    }
+  }, [user?.id]);
 
   const visibleNavigation = user ? getVisibleNavigation(user.role, user.permissions) : navigation;
 
