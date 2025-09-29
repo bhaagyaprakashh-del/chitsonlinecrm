@@ -269,6 +269,10 @@ const ActivityTimeline: React.FC<{ activities: EmployeeActivity[] }> = ({ activi
   };
 
   return (
+    <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-yellow-400/30 flex-shrink-0">
+        <div className="flex items-center space-x-4">
     <div className="space-y-4">
       {activities.map((activity, index) => {
         const Icon = getActivityIcon(activity.type);
@@ -420,6 +424,14 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
       case 'on-leave': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(amount);
   };
 
   const tabs = [
