@@ -458,6 +458,9 @@ export const Lead360: React.FC<Lead360Props> = ({ leadId, onBack }) => {
   const [activeTab, setActiveTab] = useState('table');
   const [isEditing, setIsEditing] = useState(false);
   const [activities, setActivities] = useState<LeadActivity[]>([]);
+  const [showAddNoteModal, setShowAddNoteModal] = useState(false);
+  const [newNote, setNewNote] = useState('');
+  const [isSavingNote, setIsSavingNote] = useState(false);
 
   // Load leads data on component mount
   useEffect(() => {
@@ -520,6 +523,73 @@ export const Lead360: React.FC<Lead360Props> = ({ leadId, onBack }) => {
   const handleCancelEdit = () => {
     setIsEditing(false);
     toast('Edit cancelled');
+  };
+
+  const handleAddNote = () => {
+    console.log('Opening add note modal');
+    setShowAddNoteModal(true);
+    setNewNote('');
+  };
+
+  const handleSaveNote = async () => {
+    if (!newNote.trim()) {
+      toast.error('Please enter a note');
+      return;
+    }
+
+    if (!selectedLead) {
+      toast.error('No lead selected');
+      return;
+    }
+
+    setIsSavingNote(true);
+    console.log('Saving note:', newNote);
+
+    try {
+      // Update the lead with the new note
+      const updatedLead = {
+        ...selectedLead,
+        notes: [...selectedLead.notes, newNote.trim()],
+        updatedAt: new Date().toISOString()
+      };
+
+      // Save to storage
+      updateLead(updatedLead);
+      
+      // Update local state
+      setSelectedLead(updatedLead);
+      setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
+      
+      // Generate new activity for the note
+      const newActivity: LeadActivity = {
+        id: `act_${selectedLead.id}_note_${Date.now()}`,
+        leadId: selectedLead.id,
+        type: 'note',
+        title: 'Note Added',
+        description: newNote.trim(),
+        timestamp: new Date().toISOString(),
+        performedBy: selectedLead.assignedTo || 'Current User'
+      };
+      
+      setActivities(prev => [newActivity, ...prev]);
+      
+      // Close modal and reset form
+      setShowAddNoteModal(false);
+      setNewNote('');
+      
+      toast.success('Note added successfully!');
+      console.log('Note saved successfully');
+    } catch (error) {
+      console.error('Error saving note:', error);
+      toast.error('Failed to save note. Please try again.');
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
+
+  const handleCancelNote = () => {
+    setShowAddNoteModal(false);
+    setNewNote('');
   };
 
   const tabs = [
@@ -671,23 +741,41 @@ export const Lead360: React.FC<Lead360Props> = ({ leadId, onBack }) => {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-slate-50">Notes for {selectedLead.name}</h3>
-              <button className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+              <button 
+                onClick={handleAddNote}
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
                 <FileText className="h-4 w-4 mr-2" />
                 Add Note
               </button>
             </div>
             <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30">
-              <div className="space-y-4">
-                {selectedLead.notes.map((note, index) => (
-                  <div key={index} className="p-4 bg-slate-700/30 rounded-xl border border-yellow-400/20">
-                    <p className="text-slate-50 mb-2">{note}</p>
-                    <div className="flex items-center justify-between text-xs text-slate-500">
-                      <span>By {selectedLead.assignedTo}</span>
-                      <span>{new Date(selectedLead.updatedAt).toLocaleDateString()}</span>
+              {selectedLead.notes.length > 0 ? (
+                <div className="space-y-4">
+                  {selectedLead.notes.map((note, index) => (
+                    <div key={index} className="p-4 bg-slate-700/30 rounded-xl border border-yellow-400/20">
+                      <p className="text-slate-50 mb-2">{note}</p>
+                      <div className="flex items-center justify-between text-xs text-slate-500">
+                        <span>By {selectedLead.assignedTo}</span>
+                        <span>{new Date(selectedLead.updatedAt).toLocaleDateString()}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <FileText className="h-12 w-12 mx-auto text-slate-500 mb-4" />
+                  <h3 className="text-lg font-medium text-slate-50 mb-2">No Notes Yet</h3>
+                  <p className="text-sm text-slate-400 mb-4">Add your first note to track important information about this lead.</p>
+                  <button 
+                    onClick={handleAddNote}
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Add First Note
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -805,6 +893,73 @@ export const Lead360: React.FC<Lead360Props> = ({ leadId, onBack }) => {
       <div className="flex-1 overflow-y-auto p-4 scrollbar-none">
         {renderTabContent()}
       </div>
+
+      {/* Add Note Modal */}
+      {showAddNoteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={handleCancelNote}
+          ></div>
+          
+          {/* Modal */}
+          <div className="relative bg-slate-800/90 backdrop-blur-xl border border-yellow-400/40 rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-50">Add Note</h3>
+              <button
+                onClick={handleCancelNote}
+                className="p-2 text-slate-400 hover:text-slate-50 hover:bg-slate-700/50 rounded-lg transition-all"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-50 mb-2">
+                  Note for {selectedLead?.name}
+                </label>
+                <textarea
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 backdrop-blur-sm resize-none"
+                  placeholder="Enter your note here..."
+                  disabled={isSavingNote}
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={handleCancelNote}
+                  disabled={isSavingNote}
+                  className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-700/50 border border-yellow-400/30 rounded-lg hover:bg-slate-700 transition-all disabled:opacity-50 backdrop-blur-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveNote}
+                  disabled={isSavingNote || !newNote.trim()}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSavingNote ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Note
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
