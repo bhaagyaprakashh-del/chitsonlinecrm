@@ -556,11 +556,30 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, onToggleSidebar
               onClick={() => setIsProfileOpen(!isProfileOpen)}
               className="flex items-center space-x-2 p-2 text-slate-300 hover:text-slate-50 hover:bg-slate-700/50 rounded-lg transition-all"
             >
-              <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center">
-                <span className="text-slate-50 text-sm font-semibold">
-                  {user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'U'}
-                </span>
-              </div>
+              {(() => {
+                const [headerAvatar, setHeaderAvatar] = useState<string | null>(null);
+                
+                useEffect(() => {
+                  if (user?.id) {
+                    const savedAvatar = localStorage.getItem(`user_avatar_${user.id}`);
+                    setHeaderAvatar(savedAvatar);
+                  }
+                }, [user?.id]);
+
+                return headerAvatar ? (
+                  <img
+                    src={headerAvatar}
+                    alt={user?.name || 'User'}
+                    className="h-8 w-8 rounded-full object-cover border border-yellow-400/40"
+                  />
+                ) : (
+                  <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center border border-yellow-400/40">
+                    <span className="text-slate-50 text-sm font-semibold">
+                      {user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'U'}
+                    </span>
+                  </div>
+                );
+              })()}
               <ChevronDown className={`h-4 w-4 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
             </button>
             

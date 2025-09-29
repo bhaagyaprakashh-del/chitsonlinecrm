@@ -79,7 +79,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         username: 'Prakash',
         password: 'Prakashh@55',
         role: 'Admin',
-        permissions: ['all'],
+        permissions: ['*'],
         category: 'Admin',
         status: 'Active'
       };
