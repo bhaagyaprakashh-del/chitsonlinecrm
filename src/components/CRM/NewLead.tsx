@@ -35,6 +35,8 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
   const [availableAgents, setAvailableAgents] = useState<any[]>([]);
   const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
 
+  const agents = ['Priya Sharma', 'Karthik Nair', 'Vikram Singh', 'Suresh Kumar', 'Anjali Sharma'];
+
   // Update agents and employees when branch changes
   React.useEffect(() => {
     if (formData.branch) {
@@ -289,8 +291,10 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
                     }`}
                   >
                     <option value="">Select Agent</option>
-                    {agents.map(agent => (
-                      <option key={agent} value={agent}>{agent}</option>
+                    {availableAgents.map(agent => (
+                      <option key={`${agent.firstName} ${agent.lastName}`} value={`${agent.firstName} ${agent.lastName}`}>
+                        {agent.firstName} {agent.lastName}
+                      </option>
                     ))}
                   </select>
                   {errors.assignedTo && <p className="mt-1 text-sm text-red-400">{errors.assignedTo}</p>}
@@ -341,10 +345,8 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
                         className="ml-2 text-blue-600 hover:text-blue-800"
                       >
                         ×
-                  {availableAgents.map(agent => (
-                    <option key={`${agent.firstName} ${agent.lastName}`} value={`${agent.firstName} ${agent.lastName}`}>
-                      {agent.firstName} {agent.lastName}
-                    </option>
+                      </button>
+                    </span>
                   ))}
                 </div>
               </div>
