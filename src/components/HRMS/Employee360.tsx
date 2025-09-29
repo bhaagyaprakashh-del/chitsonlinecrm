@@ -97,7 +97,8 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        const foundEmployee = parsed.find((emp: Employee) => emp.id === employeeId || emp.employeeId === employeeId);
+        const allEmployees = [...sampleEmployees, ...parsed];
+        const foundEmployee = allEmployees.find((emp: Employee) => emp.id === employeeId || emp.employeeId === employeeId);
         return foundEmployee || sampleEmployee;
       } catch (error) {
         console.error('Failed to load employee:', error);
@@ -115,7 +116,8 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          const foundEmployee = parsed.find((emp: Employee) => emp.id === employeeId || emp.employeeId === employeeId);
+          const allEmployees = [...sampleEmployees, ...parsed];
+          const foundEmployee = allEmployees.find((emp: Employee) => emp.id === employeeId || emp.employeeId === employeeId);
           if (foundEmployee) {
             setEmployee(foundEmployee);
           }

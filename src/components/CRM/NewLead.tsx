@@ -39,13 +39,13 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
   React.useEffect(() => {
     if (formData.branch) {
       const branchAgents = getAgentsByBranch(formData.branch);
-      const branchEmployees = getEmployeesByBranch(formData.branch);
+      const branchEmployees = getEmployeesByBranch(formData.branch).filter(emp => emp.status === 'active');
       setAvailableAgents(branchAgents);
       setAvailableEmployees(branchEmployees);
       
       // Reset assignments if current selections are not in the new branch
       const currentAgent = branchAgents.find(a => `${a.firstName} ${a.lastName}` === formData.assignedTo);
-      const currentEmployee = branchEmployees.find(e => `${e.firstName} ${e.lastName}` === formData.assignedToEmployee);
+      const currentEmployee = branchEmployees.find(e => e.firstName && e.lastName && `${e.firstName} ${e.lastName}` === formData.assignedToEmployee);
       
       if (!currentAgent) {
         setFormData(prev => ({ ...prev, assignedTo: '' }));
@@ -317,7 +317,7 @@ export const NewLead: React.FC<NewLeadProps> = ({ onBack, onSave }) => {
                     disabled={!formData.branch}
                   >
                     <option value="">Select Employee</option>
-                    {availableEmployees.map(employee => (
+                    {availableEmployees.filter(emp => emp.firstName && emp.lastName).map(employee => (
                       <option key={employee.id} value={`${employee.firstName} ${employee.lastName}`}>
                         {employee.firstName} {employee.lastName} - {employee.designation}
                       </option>

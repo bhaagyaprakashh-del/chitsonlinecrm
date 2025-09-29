@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Save, Upload, X, Plus, User, Briefcase, Shield, Phone, MapPin } from 'lucide-react';
+import { ArrowLeft, Save, Upload, X, Plus, User, Briefcase, Shield, Phone, MapPin, Key, Lock, Eye, EyeOff } from 'lucide-react';
 import { Employee } from '../../types/hrms';
 import { getBranches, initializeBranchesData } from '../../data/branches.mock';
 import { mockUsers, UserCategory } from '../../data/users.mock';
@@ -73,7 +73,7 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
     initializeBranchesData();
     return getBranches().filter(b => b.status === 'active');
   });
-  const [createUserAccount, setCreateUserAccount] = useState(false);
+  const [createUserAccount, setCreateUserAccount] = useState(true);
   const [userAccountData, setUserAccountData] = useState({
     username: '',
     password: '',
@@ -81,12 +81,15 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
     role: 'Employee' as UserCategory,
     permissions: [] as string[]
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const steps = [
     { id: 1, name: 'Personal Info', icon: User },
     { id: 2, name: 'Professional', icon: Briefcase },
-    { id: 3, name: 'Compensation', icon: Shield },
-    { id: 4, name: 'Emergency Contact', icon: Phone }
+    { id: 3, name: 'User Credentials', icon: Key },
+    { id: 4, name: 'Compensation', icon: Shield },
+    { id: 5, name: 'Emergency Contact', icon: Phone }
   ];
 
   const departments = [
@@ -164,16 +167,16 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
         if (!formData.joiningDate) newErrors.joiningDate = 'Joining date is required';
         break;
       case 3:
-        if (createUserAccount) {
-          if (!userAccountData.username.trim()) newErrors.username = 'Username is required';
-          if (!userAccountData.password.trim()) newErrors.password = 'Password is required';
-          if (userAccountData.password !== userAccountData.confirmPassword) {
-            newErrors.confirmPassword = 'Passwords do not match';
-          }
+        if (!userAccountData.username.trim()) newErrors.username = 'Username is required';
+        if (!userAccountData.password.trim()) newErrors.password = 'Password is required';
+        if (userAccountData.password !== userAccountData.confirmPassword) {
+          newErrors.confirmPassword = 'Passwords do not match';
         }
         break;
       case 4:
         if (!formData.basicSalary || formData.basicSalary <= 0) newErrors.basicSalary = 'Basic salary is required';
+        break;
+      case 5:
         break;
     }
 
@@ -183,7 +186,7 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 4));
+      setCurrentStep(prev => Math.min(prev + 1, 5));
     }
   };
 
@@ -210,33 +213,30 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
       localStorage.setItem('employees_data', JSON.stringify(updatedEmployees));
       
       // Create user account if requested
-      if (createUserAccount) {
-        const userData = {
-          id: `user_${Date.now()}`,
-          name: `${formData.firstName} ${formData.lastName}`,
-          email: formData.email,
-          phone: formData.phone,
-          category: userAccountData.role,
-          role: formData.designation,
-          status: 'Active',
-          department: formData.department,
-          branch: formData.branch,
-          joiningDate: formData.joiningDate,
-          lastLogin: null,
-          username: userAccountData.username,
-          permissions: rolePermissions[userAccountData.role] || [],
-          employeeId: employeeData.employeeId
-        };
-        
-        // Save to users storage
-        const existingUsers = JSON.parse(localStorage.getItem('users_data') || '[]');
-        const updatedUsers = [...existingUsers, userData];
-        localStorage.setItem('users_data', JSON.stringify(updatedUsers));
-        
-        toast.success(`Employee and user account created successfully!`);
-      } else {
-        toast.success(`Employee ${employeeData.firstName} ${employeeData.lastName} created successfully!`);
-      }
+      const userData = {
+        id: `user_${Date.now()}`,
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        phone: formData.phone,
+        category: userAccountData.role,
+        role: formData.designation,
+        status: 'Active',
+        department: formData.department,
+        branch: formData.branch,
+        joiningDate: formData.joiningDate,
+        lastLogin: null,
+        username: userAccountData.username,
+        password: userAccountData.password,
+        permissions: rolePermissions[userAccountData.role] || [],
+        employeeId: employeeData.employeeId
+      };
+      
+      // Save to users storage
+      const existingUsers = JSON.parse(localStorage.getItem('users_data') || '[]');
+      const updatedUsers = [...existingUsers, userData];
+      localStorage.setItem('users_data', JSON.stringify(updatedUsers));
+      
+      toast.success(`Employee and user account created successfully!`);
       
       // Trigger storage update events
       window.dispatchEvent(new CustomEvent('employeesUpdated'));
@@ -464,113 +464,132 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
       case 3:
         return (
           <div className="space-y-6">
-            {/* User Account Creation */}
+            {/* User Account Creation - Now Required */}
             <div className="bg-slate-700/30 rounded-xl p-6 border border-yellow-400/20">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-50">Create User Account</h3>
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={createUserAccount}
-                    onChange={(e) => {
-                      setCreateUserAccount(e.target.checked);
-                      if (e.target.checked) {
-                        generateUsername();
-                        setUserAccountData(prev => ({ 
-                          ...prev, 
-                          permissions: rolePermissions[prev.role] || [] 
-                        }));
-                      }
-                    }}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-2"
-                  />
-                  <span className="text-slate-50">Create login account for this employee</span>
-                </label>
-              </div>
+              <h3 className="text-lg font-semibold text-slate-50 mb-4 flex items-center">
+                <Key className="h-5 w-5 mr-2" />
+                User Account Credentials
+              </h3>
+              <p className="text-slate-400 text-sm mb-6">
+                Create login credentials for this employee to access the system
+              </p>
               
-              {createUserAccount && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-50 mb-2">Username *</label>
-                    <div className="flex space-x-2">
-                      <input
-                        type="text"
-                        value={userAccountData.username}
-                        onChange={(e) => handleUserAccountChange('username', e.target.value)}
-                        className={`flex-1 px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
-                          errors.username ? 'border-red-500' : 'border-yellow-400/30'
-                        }`}
-                        placeholder="username"
-                      />
-                      <button
-                        type="button"
-                        onClick={generateUsername}
-                        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                      >
-                        Generate
-                      </button>
-                    </div>
-                    {errors.username && <p className="mt-1 text-sm text-red-400">{errors.username}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-50 mb-2">User Role</label>
-                    <select
-                      value={userAccountData.role}
-                      onChange={(e) => {
-                        const role = e.target.value as UserCategory;
-                        handleUserAccountChange('role', role);
-                        handleUserAccountChange('permissions', rolePermissions[role] || []);
-                      }}
-                      className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-50 mb-2">Username *</label>
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      value={userAccountData.username}
+                      onChange={(e) => handleUserAccountChange('username', e.target.value)}
+                      className={`flex-1 px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                        errors.username ? 'border-red-500' : 'border-yellow-400/30'
+                      }`}
+                      placeholder="username"
+                    />
+                    <button
+                      type="button"
+                      onClick={generateUsername}
+                      className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                     >
-                      <option value="Admin">Admin</option>
-                      <option value="Employee">Employee</option>
-                      <option value="Agents">Agent</option>
-                      <option value="Subscribers">Subscriber</option>
-                    </select>
+                      Generate
+                    </button>
                   </div>
+                  {errors.username && <p className="mt-1 text-sm text-red-400">{errors.username}</p>}
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-50 mb-2">Password *</label>
-                    <div className="flex space-x-2">
+                <div>
+                  <label className="block text-sm font-medium text-slate-50 mb-2">User Role</label>
+                  <select
+                    value={userAccountData.role}
+                    onChange={(e) => {
+                      const role = e.target.value as UserCategory;
+                      handleUserAccountChange('role', role);
+                      handleUserAccountChange('permissions', rolePermissions[role] || []);
+                    }}
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-yellow-400/30 rounded-lg text-slate-50 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm"
+                  >
+                    <option value="Admin">Admin</option>
+                    <option value="Employee">Employee</option>
+                    <option value="Agents">Agent</option>
+                    <option value="Subscribers">Subscriber</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-50 mb-2">Password *</label>
+                  <div className="flex space-x-2">
+                    <div className="relative flex-1">
                       <input
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         value={userAccountData.password}
                         onChange={(e) => handleUserAccountChange('password', e.target.value)}
-                        className={`flex-1 px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                        className={`w-full px-3 py-2 pr-10 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
                           errors.password ? 'border-red-500' : 'border-yellow-400/30'
                         }`}
                         placeholder="Password"
                       />
                       <button
                         type="button"
-                        onClick={generatePassword}
-                        className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-300"
                       >
-                        Generate
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
-                    {errors.password && <p className="mt-1 text-sm text-red-400">{errors.password}</p>}
+                    <button
+                      type="button"
+                      onClick={generatePassword}
+                      className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                    >
+                      Generate
+                    </button>
                   </div>
+                  {errors.password && <p className="mt-1 text-sm text-red-400">{errors.password}</p>}
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-50 mb-2">Confirm Password *</label>
+                <div>
+                  <label className="block text-sm font-medium text-slate-50 mb-2">Confirm Password *</label>
+                  <div className="relative">
                     <input
-                      type="password"
+                      type={showConfirmPassword ? 'text' : 'password'}
                       value={userAccountData.confirmPassword}
                       onChange={(e) => handleUserAccountChange('confirmPassword', e.target.value)}
-                      className={`w-full px-3 py-2 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
+                      className={`w-full px-3 py-2 pr-10 bg-slate-700/50 border rounded-lg text-slate-50 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 backdrop-blur-sm ${
                         errors.confirmPassword ? 'border-red-500' : 'border-yellow-400/30'
                       }`}
                       placeholder="Confirm password"
                     />
-                    {errors.confirmPassword && <p className="mt-1 text-sm text-red-400">{errors.confirmPassword}</p>}
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
+                  {errors.confirmPassword && <p className="mt-1 text-sm text-red-400">{errors.confirmPassword}</p>}
                 </div>
-              )}
-            </div>
+              </div>
 
+              {/* Permissions Preview */}
+              <div className="mt-4 p-4 bg-slate-800/50 rounded-lg border border-yellow-400/20">
+                <h4 className="text-sm font-medium text-slate-50 mb-2">Assigned Permissions</h4>
+                <div className="flex flex-wrap gap-2">
+                  {rolePermissions[userAccountData.role]?.map((permission, index) => (
+                    <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 border border-blue-200">
+                      {permission.replace('.', ' ').replace('_', ' ')}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-50 mb-2">Basic Salary (₹) *</label>
@@ -668,7 +687,7 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
           </div>
         );
 
-      case 4:
+      case 5:
         return (
           <div className="space-y-6">
             <div>
@@ -744,7 +763,7 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
           <div>
             <h1 className="text-2xl font-bold text-slate-50">Add New Employee</h1>
             <p className="mt-1 text-sm text-slate-400">
-              Step {currentStep} of {steps.length}: {steps.find(s => s.id === currentStep)?.name}
+              Step {currentStep} of 5: {steps.find(s => s.id === currentStep)?.name}
             </p>
           </div>
         </div>
@@ -819,7 +838,7 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
               className="inline-flex items-center px-6 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg shadow-sm hover:bg-green-700 transition-all"
             >
               <Save className="h-4 w-4 mr-2" />
-              Save Employee
+              Create Employee & User
             </button>
           ) : (
             <button

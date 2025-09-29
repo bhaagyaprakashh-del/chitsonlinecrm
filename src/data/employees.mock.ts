@@ -334,18 +334,21 @@ export const mockEmployees: Employee[] = [
   }
 ];
 
+const sampleEmployees = mockEmployees;
+
 export const getEmployees = (): Employee[] => {
   const saved = localStorage.getItem('employees_data');
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : mockEmployees;
+      const validEmployees = Array.isArray(parsed) ? parsed.filter(emp => emp && emp.id) : [];
+      return [...sampleEmployees, ...validEmployees];
     } catch (error) {
       console.error('Failed to load employees:', error);
-      return mockEmployees;
+      return sampleEmployees;
     }
   }
-  return mockEmployees;
+  return sampleEmployees;
 };
 
 export const getActiveEmployees = (): Employee[] => {
@@ -376,11 +379,12 @@ export const saveEmployees = (employees: Employee[]) => {
 export const initializeEmployeesData = () => {
   try {
     const existingEmployees = getEmployees();
-    if (existingEmployees.length === 0) {
-      saveEmployees(mockEmployees);
+    const savedEmployees = JSON.parse(localStorage.getItem('employees_data') || '[]');
+    if (savedEmployees.length === 0) {
+      saveEmployees([]);
     }
   } catch (error) {
     console.error('Error initializing employees data:', error);
-    saveEmployees(mockEmployees);
+    saveEmployees([]);
   }
 };

@@ -273,7 +273,8 @@ const UsersPage: React.FC = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return Array.isArray(parsed) && parsed.length > 0 ? [...mockUsers, ...parsed] : mockUsers;
+        const validUsers = Array.isArray(parsed) ? parsed.filter(user => user && user.id) : [];
+        return [...mockUsers, ...validUsers];
       } catch (error) {
         console.error('Failed to load users:', error);
         return mockUsers;
@@ -292,8 +293,9 @@ const UsersPage: React.FC = () => {
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
-            setUsers([...mockUsers, ...parsed]);
-            console.log('UsersPage: Updated users count:', mockUsers.length + parsed.length);
+            const validUsers = parsed.filter(user => user && user.id);
+            setUsers([...mockUsers, ...validUsers]);
+            console.log('UsersPage: Updated users count:', mockUsers.length + validUsers.length);
           }
         } catch (error) {
           console.error('Failed to reload users:', error);

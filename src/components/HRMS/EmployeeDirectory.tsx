@@ -334,7 +334,8 @@ export const EmployeeDirectory: React.FC = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return Array.isArray(parsed) && parsed.length > 0 ? parsed : sampleEmployees;
+        const validEmployees = Array.isArray(parsed) ? parsed : [];
+        return validEmployees.length > 0 ? [...sampleEmployees, ...validEmployees] : sampleEmployees;
       } catch (error) {
         console.error('Failed to load employees:', error);
         return sampleEmployees;
@@ -356,8 +357,9 @@ export const EmployeeDirectory: React.FC = () => {
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
-            setEmployees(parsed.length > 0 ? parsed : sampleEmployees);
-            console.log('EmployeeDirectory: Updated employees count:', parsed.length);
+            const validEmployees = parsed.filter(emp => emp && emp.id);
+            setEmployees([...sampleEmployees, ...validEmployees]);
+            console.log('EmployeeDirectory: Updated employees count:', sampleEmployees.length + validEmployees.length);
           }
         } catch (error) {
           console.error('Failed to reload employees:', error);
