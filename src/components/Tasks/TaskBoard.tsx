@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
-import { Plus, Search, Filter, Calendar, Clock, User, Tag, AlertTriangle, Star, MoreVertical, Edit, Trash2, Eye, MessageSquare, Paperclip, CheckSquare, Settings, Users, Target, TrendingUp } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, Clock, User, Tag, AlertTriangle, Star, MoreVertical, CreditCard as Edit, Trash2, Eye, MessageSquare, Paperclip, CheckSquare, Settings, Users, Target, TrendingUp } from 'lucide-react';
 import { Task, TaskBoard as TaskBoardType, TaskColumn } from '../../types/tasks';
 import { loadTasks, saveTasks, updateTask, loadTaskBoards, saveTaskBoards } from '../../data/tasks.mock';
 import { getEmployees } from '../../data/employees.mock';

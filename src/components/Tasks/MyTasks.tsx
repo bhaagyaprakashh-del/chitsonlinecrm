@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Filter, Calendar, Clock, User, Tag, CheckSquare, AlertTriangle, Star, MoreVertical, Edit, Trash2, Eye, MessageSquare, Paperclip, Users, Target, TrendingUp, CheckCircle, XCircle, Play, Pause, X, Save } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, Clock, User, Tag, CheckSquare, AlertTriangle, Star, MoreVertical, CreditCard as Edit, Trash2, Eye, MessageSquare, Paperclip, Users, Target, TrendingUp, CheckCircle, XCircle, Play, Pause, X, Save } from 'lucide-react';
 import { Task } from '../../types/tasks';
 import { loadTasks, saveTasks, addTask, updateTask, deleteTask } from '../../data/tasks.mock';
 import { getEmployees } from '../../data/employees.mock';
