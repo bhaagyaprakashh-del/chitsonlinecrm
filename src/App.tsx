@@ -8,6 +8,7 @@ import { LogoutPage } from './components/Auth/LogoutPage';
 import { MainLayout } from './components/Layout/MainLayout';
 import { routes, auditRoutes } from './config/routes.tsx';
 import { initializeSampleData } from './utils/storage';
+import { useAuth } from './contexts/AuthContext';
 
 // Not Found Redirect Component
 const NotFoundRedirect: React.FC = () => {
@@ -22,12 +23,39 @@ const NotFoundRedirect: React.FC = () => {
 
 function App() {
   const location = useLocation();
+  const { user } = useAuth();
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
 
   useEffect(() => {
     // Initialize sample data on first load
     initializeSampleData();
   }, []);
+
+  // Redirect to role-specific dashboard after login
+  useEffect(() => {
+    if (user && location.pathname === '/dashboard') {
+      switch (user.role) {
+        case 'Admin':
+          window.location.href = '/dash/admin';
+          break;
+        case 'Employee':
+        case 'Employees':
+          window.location.href = '/dash/employee';
+          break;
+        case 'Agent':
+        case 'Agents':
+          window.location.href = '/dash/agent';
+          break;
+        case 'Subscriber':
+        case 'Subscribers':
+          window.location.href = '/dash/subscriber';
+          break;
+        default:
+          // Stay on general dashboard
+          break;
+      }
+    }
+  }, [user, location.pathname]);
 
   const getPageTitle = (path: string) => {
     const page = path.slice(1) || 'dashboard'; // Remove leading slash, default to dashboard

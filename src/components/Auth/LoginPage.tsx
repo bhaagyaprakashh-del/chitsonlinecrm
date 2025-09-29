@@ -219,13 +219,6 @@ export const LoginPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Demo Credentials */}
-                  <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                    <p className="text-blue-400 text-sm font-medium mb-1">Demo Credentials:</p>
-                    <p className="text-blue-300 text-sm">Username: <span className="font-mono">Prakash</span></p>
-                    <p className="text-blue-300 text-sm">Password: <span className="font-mono">Prakashh@55</span></p>
-                  </div>
-
                   {/* Submit Button */}
                   <button
                     type="submit"
