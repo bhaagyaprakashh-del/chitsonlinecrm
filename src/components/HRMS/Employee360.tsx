@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, DollarSign, User, CreditCard, FileText, Clock, Award, Target, TrendingUp, Users, CheckCircle, AlertTriangle, Download, Upload, Star, Briefcase, Shield, Building, Activity, Eye, Send, MessageSquare, Save, X, Key, Lock, EyeOff, Search, Filter, MoreVertical, Trash2, Cancel } from 'lucide-react';
+import { ArrowLeft, CreditCard as Edit, Mail, Phone, MapPin, Calendar, DollarSign, User, CreditCard, FileText, Clock, Award, Target, TrendingUp, Users, CheckCircle, AlertTriangle, Download, Upload, Star, Briefcase, Shield, Building, Activity, Eye, Send, MessageSquare, Save, X, Key, Lock, EyeOff, Search, Filter, MoreVertical, Trash2, Ambulance as Cancel } from 'lucide-react';
 import { Employee } from '../../types/hrms';
 import { getEmployees, saveEmployees, updateEmployee, deleteEmployee, initializeEmployeesData } from '../../data/employees.mock';
 import { getBranches, initializeBranchesData } from '../../data/branches.mock';
@@ -360,6 +360,7 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
         const updatedEmployee = updatedEmployees.find(e => e.id === selectedEmployeeId);
         if (updatedEmployee) {
           setSelectedEmployee(updatedEmployee);
+          setEditFormData(updatedEmployee);
           setActivities(generateActivitiesForEmployee(updatedEmployee));
         }
       }
@@ -796,32 +797,10 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
               <Mail className="h-4 w-4 mr-2" />
               Email
             </button>
-            {isEditing ? (
-              <div className="flex space-x-2">
-                <button 
-                  onClick={handleSaveEdit}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-green-600 hover:bg-green-700 transition-all"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Changes
-                </button>
-                <button 
-                  onClick={handleCancelEdit}
-                  className="inline-flex items-center px-4 py-2 border border-yellow-400/30 text-sm font-medium rounded-lg text-slate-50 bg-slate-700/50 hover:bg-slate-700 transition-all backdrop-blur-sm"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button 
-                onClick={handleEditEmployee}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-all"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Employee
-              </button>
-            )}
+            <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-all">
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Employee
+            </button>
           </div>
         )}
       </div>
