@@ -3,6 +3,7 @@ import { ArrowLeft, CreditCard as Edit, Mail, Phone, Building, Calendar, DollarS
 import { Employee } from '../../types/hrms';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { sampleEmployees } from '../../data/employees.mock';
 
 interface Employee360Props {
   employeeId: string;
