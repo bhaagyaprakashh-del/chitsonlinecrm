@@ -262,6 +262,38 @@ const DiaryCard: React.FC<{ diary: DailyDiary }> = React.memo(({ diary }) => {
 
   const MoodIcon = getMoodIcon(diary.moodRating);
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'customer-visit': return Users;
+      case 'phone-call': return Phone;
+      case 'email': return Mail;
+      case 'follow-up': return CheckCircle;
+      case 'documentation': return FileText;
+      case 'travel': return Car;
+      case 'training': return Star;
+      case 'meeting': return Users;
+      default: return Activity;
+    }
+  };
+
+  const getOutcomeColor = (outcome: string) => {
+    switch (outcome) {
+      case 'successful': return 'text-green-400';
+      case 'partial': return 'text-yellow-400';
+      case 'unsuccessful': return 'text-red-400';
+      case 'rescheduled': return 'text-blue-400';
+      default: return 'text-slate-400';
+    }
+  };
+
   return (
     <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl p-6 border border-yellow-400/30 hover:border-yellow-400/50 transition-all">
       <div className="flex items-start justify-between mb-4">

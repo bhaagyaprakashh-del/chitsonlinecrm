@@ -701,7 +701,7 @@ export const ChatBroadcast: React.FC = () => {
                   <p className="text-sm text-slate-400">Closed</p>
                   <p className="text-2xl font-bold text-gray-400">{conversationStats.closed}</p>
                 </div>
-                <Archive className="h-8 w-8 text-gray-400" />
+                <XCircle className="h-8 w-8 text-gray-400" />
               </div>
             </div>
             <div className="bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-yellow-400/30">
@@ -710,7 +710,7 @@ export const ChatBroadcast: React.FC = () => {
                   <p className="text-sm text-slate-400">Avg Response</p>
                   <p className="text-2xl font-bold text-purple-400">{conversationStats.avgResponseTime.toFixed(0)}m</p>
                 </div>
-                <Timer className="h-8 w-8 text-purple-400" />
+                <Clock className="h-8 w-8 text-purple-400" />
               </div>
             </div>
             <div className="bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-yellow-400/30">
