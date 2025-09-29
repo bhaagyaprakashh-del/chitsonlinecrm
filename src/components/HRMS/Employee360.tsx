@@ -849,10 +849,12 @@ export const Employee360: React.FC<Employee360Props> = ({ employeeId, onBack }) 
 
     window.addEventListener('storage', handleEmployeeUpdate);
     window.addEventListener('employeesUpdated', handleEmployeeUpdate);
+    window.addEventListener('employeeDataChanged', handleEmployeeUpdate);
     
     return () => {
       window.removeEventListener('storage', handleEmployeeUpdate);
       window.removeEventListener('employeesUpdated', handleEmployeeUpdate);
+      window.removeEventListener('employeeDataChanged', handleEmployeeUpdate);
     };
   }, [selectedEmployeeId]);
 

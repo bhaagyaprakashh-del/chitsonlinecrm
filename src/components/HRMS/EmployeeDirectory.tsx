@@ -217,9 +217,19 @@ export const EmployeeDirectory: React.FC = () => {
     window.addEventListener('storage', handleEmployeeUpdate);
     window.addEventListener('employeesUpdated', handleEmployeeUpdate);
     
+    // Also listen for custom events from the same tab
+    const handleCustomUpdate = () => {
+      console.log('EmployeeDirectory: Custom event triggered, reloading...');
+      const updatedEmployees = getEmployees();
+      setEmployees(updatedEmployees);
+    };
+    
+    window.addEventListener('employeeDataChanged', handleCustomUpdate);
+    
     return () => {
       window.removeEventListener('storage', handleEmployeeUpdate);
       window.removeEventListener('employeesUpdated', handleEmployeeUpdate);
+      window.removeEventListener('employeeDataChanged', handleCustomUpdate);
     };
   }, []);
 

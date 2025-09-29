@@ -210,7 +210,7 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
       // Save to employees storage
       const existingEmployees = JSON.parse(localStorage.getItem('employees_data') || '[]');
       const updatedEmployees = [...existingEmployees, employeeData];
-      localStorage.setItem('employees_data', JSON.stringify(updatedEmployees));
+      saveEmployees(updatedEmployees);
       
       // Create user account if requested
       const userData = {
@@ -240,6 +240,7 @@ export const NewEmployee: React.FC<NewEmployeeProps> = ({ onBack, onSave }) => {
       
       // Trigger storage update events
       window.dispatchEvent(new CustomEvent('employeesUpdated'));
+      window.dispatchEvent(new CustomEvent('employeeDataChanged'));
       window.dispatchEvent(new CustomEvent('usersUpdated'));
       
       onSave(employeeData);

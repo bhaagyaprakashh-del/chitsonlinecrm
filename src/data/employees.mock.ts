@@ -369,11 +369,8 @@ export const getEmployeeById = (id: string): Employee | undefined => {
 
 export const saveEmployees = (employees: Employee[]) => {
   try {
-    // Only save non-sample employees to localStorage
-    const nonSampleEmployees = employees.filter(emp => 
-      !sampleEmployees.find(sample => sample.id === emp.id)
-    );
-    localStorage.setItem('employees_data', JSON.stringify(nonSampleEmployees));
+    // Save all employees to localStorage
+    localStorage.setItem('employees_data', JSON.stringify(employees));
     window.dispatchEvent(new CustomEvent('employeesUpdated'));
   } catch (error) {
     console.error('Failed to save employees:', error);
@@ -384,12 +381,12 @@ export const initializeEmployeesData = () => {
   try {
     const saved = localStorage.getItem('employees_data');
     if (!saved) {
-      // Initialize with empty array if no data exists
-      localStorage.setItem('employees_data', JSON.stringify([]));
+      // Initialize with sample employees if no data exists
+      localStorage.setItem('employees_data', JSON.stringify(sampleEmployees));
     }
   } catch (error) {
     console.error('Error initializing employees data:', error);
-    localStorage.setItem('employees_data', JSON.stringify([]));
+    localStorage.setItem('employees_data', JSON.stringify(sampleEmployees));
   }
 };
 
