@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Plus, Search, CreditCard as Edit, Trash2, Eye, Target, TrendingUp, DollarSign, Users, CheckSquare, Calendar, Award, AlertTriangle, Star, Activity, BarChart3, PieChart, Filter, Download, Upload, Settings, MoreVertical, User, Building, Clock, CheckCircle, XCircle, Flag, Zap, Crown, Save, X, RefreshCw } from 'lucide-react';
 import { EmployeeKPI, KPITarget, KPIAchievement } from '../../types/kpi';
 import { getEmployeeKPIs, saveEmployeeKPIs, updateKPIAchievement, initializeKPIData } from '../../data/kpi.mock';
@@ -662,7 +662,7 @@ export const EmployeeKPIComponent: React.FC = () => {
   const [selectedTargetType, setSelectedTargetType] = useState<string>('');
 
   // Listen for KPI updates
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKPIUpdate = () => {
       const updatedKPIs = getEmployeeKPIs();
       setKpis(updatedKPIs);
@@ -671,6 +671,13 @@ export const EmployeeKPIComponent: React.FC = () => {
     window.addEventListener('kpisUpdated', handleKPIUpdate);
     return () => window.removeEventListener('kpisUpdated', handleKPIUpdate);
   }, []);
+
+  const getPerformanceColor = (performance: number) => {
+    if (performance >= 100) return 'text-green-400';
+    if (performance >= 80) return 'text-blue-400';
+    if (performance >= 50) return 'text-yellow-400';
+    return 'text-red-400';
+  };
 
   const filteredKPIs = useMemo(() => kpis.filter(kpi => {
     const matchesSearch = kpi.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1037,32 +1044,32 @@ export const EmployeeKPIComponent: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Create/Edit KPI Modal */}
+        <CreateKPIModal
+          isOpen={showCreateModal}
+          onClose={() => {
+            setShowCreateModal(false);
+            setEditingKPI(null);
+          }}
+          onSave={handleSaveKPI}
+          editingKPI={editingKPI}
+          employees={employees}
+        />
+
+        {/* Update Achievement Modal */}
+        <UpdateAchievementModal
+          isOpen={showUpdateModal}
+          onClose={() => {
+            setShowUpdateModal(false);
+            setSelectedKPI(null);
+            setSelectedTargetType('');
+          }}
+          onSave={handleSaveAchievement}
+          kpi={selectedKPI}
+          targetType={selectedTargetType}
+        />
       </div>
-
-      {/* Create/Edit KPI Modal */}
-      <CreateKPIModal
-        isOpen={showCreateModal}
-        onClose={() => {
-          setShowCreateModal(false);
-          setEditingKPI(null);
-        }}
-        onSave={handleSaveKPI}
-        editingKPI={editingKPI}
-        employees={employees}
-      />
-
-      {/* Update Achievement Modal */}
-      <UpdateAchievementModal
-        isOpen={showUpdateModal}
-        onClose={() => {
-          setShowUpdateModal(false);
-          setSelectedKPI(null);
-          setSelectedTargetType('');
-        }}
-        onSave={handleSaveAchievement}
-        kpi={selectedKPI}
-        targetType={selectedTargetType}
-      />
     </div>
   );
 };
