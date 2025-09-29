@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Search, ChevronRight } from 'lucide-react';
+import { Search, ChevronRight, Shield } from 'lucide-react';
 import { NavigationItem, navigation } from '../../config/navigation';
 import { getRouteByPath } from '../../config/routes';
 import { useAuth, AppRole } from '../../contexts/AuthContext';
