@@ -290,8 +290,33 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ isOpen, onClose }) =>
 };
 
 const SearchDropdown: React.FC<SearchDropdownProps> = ({ isOpen, searchTerm, onClose, onNavigate }) => {
+  const { user } = useAuth();
+  
   // Get main module pages for display
   const mainModulePages = useMemo(() => {
+    if (!user) return [];
+    
+    console.log('Header Search: User permissions:', user.permissions);
+    
+    // If user has admin permissions, show all popular pages
+    if (user.permissions.includes('*') || user.permissions.includes('admin.*')) {
+      console.log('Header Search: User has admin access, showing all pages');
+      return getPopularPages();
+    }
+    
+    // Filter popular pages based on permissions
+    const popularPages = getPopularPages();
+    const filteredPages = popularPages.filter(page => {
+      const hasAccess = user.permissions.includes(`${page.id}.view`);
+      console.log(`Header Search: Page ${page.name} - hasAccess: ${hasAccess}`);
+      return hasAccess;
+    });
+    
+    console.log('Header Search: Filtered popular pages:', filteredPages.map(p => p.name));
+    return filteredPages;
+  }, [user?.permissions]);
+  
+  const getPopularPages = () => {
     const popularPages = [
       { id: 'dashboard', name: 'Dashboard', icon: navigation[0].icon, module: 'Overview' },
       { id: 'leads-all', name: 'All Leads', icon: navigation[1].children?.[0].icon, module: 'Leads & Sales' },
@@ -305,22 +330,38 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({ isOpen, searchTerm, onC
       { id: 'company-profile-branding', name: 'Company Profile', icon: navigation[10].children?.[0].icon, module: 'Settings' }
     ];
     return popularPages;
-  }, []);
+  };
 
   const filteredItems = useMemo(() => {
+    if (!user) return [];
+    
     if (!searchTerm.trim()) {
       return mainModulePages;
     }
 
-    return navigation.flatMap(module => {
+    // Filter navigation based on user permissions
+    const accessibleNavigation = user.permissions.includes('*') || user.permissions.includes('admin.*') 
+      ? navigation 
+      : navigation.filter(module => {
+          const hasModuleAccess = user.permissions.includes(`${module.id}.view`);
+          const hasPageAccess = module.children?.some(page => 
+            user.permissions.includes(`${page.id}.view`)
+          );
+          return hasModuleAccess || hasPageAccess;
+        });
+
+    return accessibleNavigation.flatMap(module => {
       const moduleMatches = module.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const childMatches = module.children?.filter(child => 
-        child.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const childMatches = module.children?.filter(child => {
+        const nameMatches = child.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const hasAccess = user.permissions.includes('*') || user.permissions.includes(`${child.id}.view`);
+        return nameMatches && hasAccess;
+      }
       ) || [];
 
       const results = [];
       
-      if (moduleMatches) {
+      if (moduleMatches && (user.permissions.includes('*') || user.permissions.includes(`${module.id}.view`))) {
         results.push({
           id: module.id,
           name: module.name,
@@ -345,7 +386,7 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({ isOpen, searchTerm, onC
 
       return results;
     });
-  }, [searchTerm, mainModulePages]);
+  }, [searchTerm, mainModulePages, user?.permissions]);
 
   if (!isOpen) return null;
 

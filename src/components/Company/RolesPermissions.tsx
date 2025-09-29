@@ -27,9 +27,12 @@ interface Role {
 interface ModulePermission {
   moduleId: string;
   moduleName: string;
+  moduleIcon: any;
+  hasAccess: boolean;
   pages: {
     pageId: string;
     pageName: string;
+    pageIcon: any;
     permissions: {
       view: boolean;
       edit: boolean;
@@ -44,7 +47,7 @@ const generatePermissionsFromNavigation = (): Permission[] => {
   const permissions: Permission[] = [];
   
   navigation.forEach(module => {
-    // Module-level permissions
+    // Module-level view permission
     permissions.push({
       id: `${module.id}.view`,
       name: `View ${module.name}`,
@@ -56,7 +59,7 @@ const generatePermissionsFromNavigation = (): Permission[] => {
     // Page-level permissions
     if (module.children) {
       module.children.forEach(page => {
-        // View permission
+        // View permission (always available)
         permissions.push({
           id: `${page.id}.view`,
           name: `View ${page.name}`,
@@ -66,41 +69,35 @@ const generatePermissionsFromNavigation = (): Permission[] => {
           action: 'view'
         });
 
-        // Edit permission (for most pages)
-        if (!page.id.includes('reports') && !page.id.includes('dashboard')) {
-          permissions.push({
-            id: `${page.id}.edit`,
-            name: `Edit ${page.name}`,
-            description: `Edit access to ${page.name}`,
-            module: module.name,
-            page: page.name,
-            action: 'edit'
-          });
-        }
+        // Edit permission
+        permissions.push({
+          id: `${page.id}.edit`,
+          name: `Edit ${page.name}`,
+          description: `Edit access to ${page.name}`,
+          module: module.name,
+          page: page.name,
+          action: 'edit'
+        });
 
-        // Create permission (for list pages)
-        if (page.id.includes('all') || page.id.includes('directory') || page.id.includes('list')) {
-          permissions.push({
-            id: `${page.id}.create`,
-            name: `Create in ${page.name}`,
-            description: `Create new records in ${page.name}`,
-            module: module.name,
-            page: page.name,
-            action: 'create'
-          });
-        }
+        // Create permission
+        permissions.push({
+          id: `${page.id}.create`,
+          name: `Create in ${page.name}`,
+          description: `Create new records in ${page.name}`,
+          module: module.name,
+          page: page.name,
+          action: 'create'
+        });
 
-        // Delete permission (for management pages)
-        if (!page.id.includes('reports') && !page.id.includes('dashboard') && !page.id.includes('new')) {
-          permissions.push({
-            id: `${page.id}.delete`,
-            name: `Delete in ${page.name}`,
-            description: `Delete records in ${page.name}`,
-            module: module.name,
-            page: page.name,
-            action: 'delete'
-          });
-        }
+        // Delete permission
+        permissions.push({
+          id: `${page.id}.delete`,
+          name: `Delete in ${page.name}`,
+          description: `Delete records in ${page.name}`,
+          module: module.name,
+          page: page.name,
+          action: 'delete'
+        });
       });
     }
   });
@@ -124,21 +121,24 @@ const CreateRoleModal: React.FC<{
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (editingRole) {
-      setFormData({
-        name: editingRole.name,
-        description: editingRole.description,
-        status: editingRole.status
-      });
-      // Load existing permissions
-      loadExistingPermissions(editingRole.permissions);
-    } else {
-      setFormData({
-        name: '',
-        description: '',
-        status: 'active'
-      });
-      initializeModulePermissions();
+    if (isOpen) {
+      if (editingRole) {
+        setFormData({
+          name: editingRole.name,
+          description: editingRole.description,
+          status: editingRole.status
+        });
+        loadExistingPermissions(editingRole.permissions);
+      } else {
+        setFormData({
+          name: '',
+          description: '',
+          status: 'active'
+        });
+        initializeModulePermissions();
+      }
+      // Expand all modules by default for better UX
+      setExpandedModules(new Set(navigation.map(m => m.id)));
     }
   }, [editingRole, isOpen]);
 
@@ -146,9 +146,12 @@ const CreateRoleModal: React.FC<{
     const modulePerms: ModulePermission[] = navigation.map(module => ({
       moduleId: module.id,
       moduleName: module.name,
+      moduleIcon: module.icon,
+      hasAccess: false,
       pages: (module.children || []).map(page => ({
         pageId: page.id,
         pageName: page.name,
+        pageIcon: page.icon,
         permissions: {
           view: false,
           edit: false,
@@ -161,24 +164,54 @@ const CreateRoleModal: React.FC<{
   };
 
   const loadExistingPermissions = (permissions: string[]) => {
-    const modulePerms: ModulePermission[] = navigation.map(module => ({
-      moduleId: module.id,
-      moduleName: module.name,
-      pages: (module.children || []).map(page => ({
+    const modulePerms: ModulePermission[] = navigation.map(module => {
+      const hasModuleAccess = permissions.includes(`${module.id}.view`);
+      const pages = (module.children || []).map(page => ({
         pageId: page.id,
         pageName: page.name,
+        pageIcon: page.icon,
         permissions: {
           view: permissions.includes(`${page.id}.view`),
           edit: permissions.includes(`${page.id}.edit`),
           delete: permissions.includes(`${page.id}.delete`),
           create: permissions.includes(`${page.id}.create`)
         }
-      }))
-    }));
+      }));
+
+      return {
+        moduleId: module.id,
+        moduleName: module.name,
+        moduleIcon: module.icon,
+        hasAccess: hasModuleAccess || pages.some(p => Object.values(p.permissions).some(Boolean)),
+        pages
+      };
+    });
     setModulePermissions(modulePerms);
   };
 
-  const handleModuleToggle = (moduleId: string, action: 'view' | 'edit' | 'delete' | 'create', checked: boolean) => {
+  const handleModuleAccessToggle = (moduleId: string, hasAccess: boolean) => {
+    setModulePermissions(prev => 
+      prev.map(module => 
+        module.moduleId === moduleId
+          ? {
+              ...module,
+              hasAccess,
+              pages: module.pages.map(page => ({
+                ...page,
+                permissions: {
+                  view: hasAccess,
+                  edit: hasAccess,
+                  delete: hasAccess,
+                  create: hasAccess
+                }
+              }))
+            }
+          : module
+      )
+    );
+  };
+
+  const handleModulePermissionToggle = (moduleId: string, action: 'view' | 'edit' | 'delete' | 'create', checked: boolean) => {
     setModulePermissions(prev => 
       prev.map(module => 
         module.moduleId === moduleId
@@ -218,6 +251,18 @@ const CreateRoleModal: React.FC<{
           : module
       )
     );
+
+    // Update module access based on page permissions
+    setModulePermissions(prev => 
+      prev.map(module => 
+        module.moduleId === moduleId
+          ? {
+              ...module,
+              hasAccess: module.pages.some(p => Object.values(p.permissions).some(Boolean))
+            }
+          : module
+      )
+    );
   };
 
   const toggleModuleExpansion = (moduleId: string) => {
@@ -246,7 +291,14 @@ const CreateRoleModal: React.FC<{
 
     // Collect all selected permissions
     const selectedPermissions: string[] = [];
+    
     modulePermissions.forEach(module => {
+      // Add module-level permission if module has access
+      if (module.hasAccess) {
+        selectedPermissions.push(`${module.moduleId}.view`);
+      }
+      
+      // Add page-level permissions
       module.pages.forEach(page => {
         Object.entries(page.permissions).forEach(([action, enabled]) => {
           if (enabled) {
@@ -277,7 +329,7 @@ const CreateRoleModal: React.FC<{
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}></div>
       
       {/* Modal */}
-      <div className="relative bg-slate-800/90 backdrop-blur-xl border border-yellow-400/40 rounded-2xl shadow-2xl p-6 w-full max-w-6xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-slate-800/90 backdrop-blur-xl border border-yellow-400/40 rounded-2xl shadow-2xl p-6 w-full max-w-7xl mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-slate-50">
             {editingRole ? 'Edit Role' : 'Create New Role'}
@@ -287,7 +339,7 @@ const CreateRoleModal: React.FC<{
           </button>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Role Information */}
           <div className="space-y-6">
             <div>
@@ -332,43 +384,58 @@ const CreateRoleModal: React.FC<{
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="text-sm font-medium text-blue-900 mb-2">Permission Summary</h4>
-              <div className="text-sm text-blue-800">
+              <div className="text-sm text-blue-800 space-y-1">
+                <p>Modules with Access: {modulePermissions.filter(m => m.hasAccess).length}</p>
                 <p>Total Permissions: {modulePermissions.reduce((sum, m) => sum + m.pages.reduce((pageSum, p) => pageSum + Object.values(p.permissions).filter(Boolean).length, 0), 0)}</p>
-                <p>Modules: {modulePermissions.filter(m => m.pages.some(p => Object.values(p.permissions).some(Boolean))).length}</p>
+                <p>Pages Accessible: {modulePermissions.reduce((sum, m) => sum + m.pages.filter(p => Object.values(p.permissions).some(Boolean)).length, 0)}</p>
               </div>
             </div>
           </div>
 
           {/* Permissions Grid */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <h4 className="text-lg font-semibold text-slate-50 mb-4">Module & Page Permissions</h4>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
+            <div className="space-y-4 max-h-[600px] overflow-y-auto scrollbar-none">
               {modulePermissions.map((module) => {
                 const isExpanded = expandedModules.has(module.moduleId);
-                const hasAnyPermission = module.pages.some(page => Object.values(page.permissions).some(Boolean));
+                const ModuleIcon = module.moduleIcon;
                 
                 return (
                   <div key={module.moduleId} className="bg-slate-700/30 rounded-xl border border-yellow-400/20">
                     {/* Module Header */}
                     <div className="p-4 border-b border-yellow-400/20">
                       <div className="flex items-center justify-between">
-                        <button
-                          onClick={() => toggleModuleExpansion(module.moduleId)}
-                          className="flex items-center space-x-2 text-slate-50 hover:text-blue-400 transition-colors"
-                        >
-                          {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                          <span className="font-medium">{module.moduleName}</span>
-                          <span className="text-xs text-slate-400">({module.pages.length} pages)</span>
-                        </button>
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={() => toggleModuleExpansion(module.moduleId)}
+                            className="flex items-center space-x-2 text-slate-50 hover:text-blue-400 transition-colors"
+                          >
+                            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                            <ModuleIcon className="h-5 w-5 text-blue-400" />
+                            <span className="font-medium">{module.moduleName}</span>
+                            <span className="text-xs text-slate-400">({module.pages.length} pages)</span>
+                          </button>
+                          
+                          {/* Module Access Toggle */}
+                          <label className="flex items-center space-x-2 ml-4">
+                            <input
+                              type="checkbox"
+                              checked={module.hasAccess}
+                              onChange={(e) => handleModuleAccessToggle(module.moduleId, e.target.checked)}
+                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                            />
+                            <span className="text-green-400 text-sm font-medium">✓ Module Access</span>
+                          </label>
+                        </div>
                         
-                        {/* Module-level controls */}
+                        {/* Module-level permission controls */}
                         <div className="flex items-center space-x-4">
                           <div className="flex items-center space-x-2">
                             <label className="flex items-center space-x-1 text-xs text-slate-300">
                               <input
                                 type="checkbox"
                                 checked={module.pages.every(p => p.permissions.view)}
-                                onChange={(e) => handleModuleToggle(module.moduleId, 'view', e.target.checked)}
+                                onChange={(e) => handleModulePermissionToggle(module.moduleId, 'view', e.target.checked)}
                                 className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                               />
                               <span>All View</span>
@@ -377,7 +444,7 @@ const CreateRoleModal: React.FC<{
                               <input
                                 type="checkbox"
                                 checked={module.pages.every(p => p.permissions.edit)}
-                                onChange={(e) => handleModuleToggle(module.moduleId, 'edit', e.target.checked)}
+                                onChange={(e) => handleModulePermissionToggle(module.moduleId, 'edit', e.target.checked)}
                                 className="h-3 w-3 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                               />
                               <span>All Edit</span>
@@ -386,7 +453,7 @@ const CreateRoleModal: React.FC<{
                               <input
                                 type="checkbox"
                                 checked={module.pages.every(p => p.permissions.create)}
-                                onChange={(e) => handleModuleToggle(module.moduleId, 'create', e.target.checked)}
+                                onChange={(e) => handleModulePermissionToggle(module.moduleId, 'create', e.target.checked)}
                                 className="h-3 w-3 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                               />
                               <span>All Create</span>
@@ -395,7 +462,7 @@ const CreateRoleModal: React.FC<{
                               <input
                                 type="checkbox"
                                 checked={module.pages.every(p => p.permissions.delete)}
-                                onChange={(e) => handleModuleToggle(module.moduleId, 'delete', e.target.checked)}
+                                onChange={(e) => handleModulePermissionToggle(module.moduleId, 'delete', e.target.checked)}
                                 className="h-3 w-3 text-red-600 focus:ring-red-500 border-gray-300 rounded"
                               />
                               <span>All Delete</span>
@@ -408,52 +475,58 @@ const CreateRoleModal: React.FC<{
                     {/* Pages */}
                     {isExpanded && (
                       <div className="p-4 space-y-3">
-                        {module.pages.map((page) => (
-                          <div key={page.pageId} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg border border-yellow-400/20">
-                            <div>
-                              <p className="text-slate-50 font-medium text-sm">{page.pageName}</p>
-                              <p className="text-slate-400 text-xs">{page.pageId}</p>
+                        {module.pages.map((page) => {
+                          const PageIcon = page.pageIcon;
+                          return (
+                            <div key={page.pageId} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg border border-yellow-400/20">
+                              <div className="flex items-center space-x-3">
+                                <PageIcon className="h-4 w-4 text-slate-400" />
+                                <div>
+                                  <p className="text-slate-50 font-medium text-sm">{page.pageName}</p>
+                                  <p className="text-slate-400 text-xs">{page.pageId}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-4">
+                                <label className="flex items-center space-x-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={page.permissions.view}
+                                    onChange={(e) => handlePagePermissionToggle(module.moduleId, page.pageId, 'view', e.target.checked)}
+                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                  />
+                                  <span className="text-blue-400 text-sm">View</span>
+                                </label>
+                                <label className="flex items-center space-x-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={page.permissions.edit}
+                                    onChange={(e) => handlePagePermissionToggle(module.moduleId, page.pageId, 'edit', e.target.checked)}
+                                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                                  />
+                                  <span className="text-green-400 text-sm">Edit</span>
+                                </label>
+                                <label className="flex items-center space-x-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={page.permissions.create}
+                                    onChange={(e) => handlePagePermissionToggle(module.moduleId, page.pageId, 'create', e.target.checked)}
+                                    className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                                  />
+                                  <span className="text-purple-400 text-sm">Create</span>
+                                </label>
+                                <label className="flex items-center space-x-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={page.permissions.delete}
+                                    onChange={(e) => handlePagePermissionToggle(module.moduleId, page.pageId, 'delete', e.target.checked)}
+                                    className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                                  />
+                                  <span className="text-red-400 text-sm">Delete</span>
+                                </label>
+                              </div>
                             </div>
-                            <div className="flex items-center space-x-4">
-                              <label className="flex items-center space-x-1">
-                                <input
-                                  type="checkbox"
-                                  checked={page.permissions.view}
-                                  onChange={(e) => handlePagePermissionToggle(module.moduleId, page.pageId, 'view', e.target.checked)}
-                                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                />
-                                <span className="text-blue-400 text-sm">View</span>
-                              </label>
-                              <label className="flex items-center space-x-1">
-                                <input
-                                  type="checkbox"
-                                  checked={page.permissions.edit}
-                                  onChange={(e) => handlePagePermissionToggle(module.moduleId, page.pageId, 'edit', e.target.checked)}
-                                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                                />
-                                <span className="text-green-400 text-sm">Edit</span>
-                              </label>
-                              <label className="flex items-center space-x-1">
-                                <input
-                                  type="checkbox"
-                                  checked={page.permissions.create}
-                                  onChange={(e) => handlePagePermissionToggle(module.moduleId, page.pageId, 'create', e.target.checked)}
-                                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                                />
-                                <span className="text-purple-400 text-sm">Create</span>
-                              </label>
-                              <label className="flex items-center space-x-1">
-                                <input
-                                  type="checkbox"
-                                  checked={page.permissions.delete}
-                                  onChange={(e) => handlePagePermissionToggle(module.moduleId, page.pageId, 'delete', e.target.checked)}
-                                  className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-                                />
-                                <span className="text-red-400 text-sm">Delete</span>
-                              </label>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -524,9 +597,9 @@ export const RolesPermissions: React.FC = () => {
         description: 'Management level access for operations',
         userCount: 8,
         permissions: [
-          'dashboard.view', 'leads-all.view', 'leads-all.edit', 'leads-all.create',
-          'subscribers-all.view', 'subscribers-all.edit', 'chit-list.view',
-          'hrms-directory.view', 'reports-dashboard.view'
+          'dashboard.view', 'leads.view', 'leads-all.view', 'leads-all.edit', 'leads-all.create',
+          'subscribers.view', 'subscribers-all.view', 'subscribers-all.edit', 'chit-groups.view', 'chit-list.view',
+          'employees-hrms.view', 'hrms-directory.view', 'reports-hub.view', 'reports-dashboard.view'
         ],
         status: 'active',
         isSystem: false,
@@ -539,8 +612,9 @@ export const RolesPermissions: React.FC = () => {
         description: 'Standard employee access',
         userCount: 25,
         permissions: [
-          'dashboard.view', 'leads-all.view', 'leads-all.create',
-          'tasks-my.view', 'calendar-my.view', 'reports-dashboard.view'
+          'dashboard.view', 'leads.view', 'leads-all.view', 'leads-all.create',
+          'tasks.view', 'tasks-my.view', 'calendar.view', 'calendar-my.view', 
+          'reports-hub.view', 'reports-dashboard.view'
         ],
         status: 'active',
         isSystem: false,
@@ -553,8 +627,8 @@ export const RolesPermissions: React.FC = () => {
         description: 'Field agent with limited access',
         userCount: 15,
         permissions: [
-          'dashboard.view', 'leads-all.view', 'leads-all.create',
-          'agents-directory.view', 'agents-diary.view', 'agents-diary.edit'
+          'dashboard.view', 'leads.view', 'leads-all.view', 'leads-all.create',
+          'agents.view', 'agents-directory.view', 'agents-diary.view', 'agents-diary.edit'
         ],
         status: 'active',
         isSystem: false,
@@ -643,6 +717,7 @@ export const RolesPermissions: React.FC = () => {
         });
         localStorage.setItem('users_data', JSON.stringify(updatedUsers));
         window.dispatchEvent(new CustomEvent('usersUpdated'));
+        window.dispatchEvent(new CustomEvent('permissionsUpdated'));
       } catch (error) {
         console.error('Failed to update user permissions:', error);
       }

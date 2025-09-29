@@ -60,7 +60,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       // Get all users from localStorage
       const usersData = localStorage.getItem('users_data');
+      const rolesData = localStorage.getItem('roles_data');
       let allUsers = [];
+      let allRoles = [];
       
       if (usersData) {
         try {
@@ -71,6 +73,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
       
+      if (rolesData) {
+        try {
+          const parsedRoles = JSON.parse(rolesData);
+          allRoles = Array.isArray(parsedRoles) ? parsedRoles : [];
+        } catch (error) {
+          console.error('Error parsing roles data:', error);
+        }
+      }
+      
       // Add default admin user if not exists
       const defaultAdmin = {
         id: 'admin_default',
@@ -78,9 +89,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email: 'prakash@ramnirmalchits.com',
         username: 'Prakash',
         password: 'Prakashh@55',
-        role: 'Admin',
-        permissions: ['*'],
+        role: 'Super Admin',
         category: 'Admin',
+        permissions: ['*'],
         status: 'Active'
       };
       
@@ -100,10 +111,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           name: foundUser.name,
           email: foundUser.email,
           role: foundUser.role || foundUser.category,
-          permissions: foundUser.permissions || [],
+          permissions: getUserPermissions(foundUser, allRoles),
           avatar: foundUser.avatar
         };
         
+        console.log('AuthContext: User logged in with permissions:', userData.permissions);
         setUser(userData);
         localStorage.setItem('auth_user', JSON.stringify(userData));
         setIsLoading(false);
@@ -119,6 +131,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(false);
       return false;
     }
+  };
+
+  const getUserPermissions = (user: any, roles: any[]): string[] => {
+    // If user has direct permissions, use those
+    if (user.permissions && Array.isArray(user.permissions)) {
+      return user.permissions;
+    }
+    
+    // Otherwise, get permissions from role
+    const userRole = roles.find(role => 
+      role.name === user.role || role.name === user.category
+    );
+    
+    if (userRole && userRole.permissions) {
+      console.log(`AuthContext: Found role ${userRole.name} with permissions:`, userRole.permissions);
+      return userRole.permissions;
+    }
+    
+    // Default permissions for backward compatibility
+    console.log('AuthContext: No role found, using default permissions');
+    return ['dashboard.view'];
   };
 
   const logout = () => {

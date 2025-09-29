@@ -4,7 +4,7 @@ import { Search, ChevronRight } from 'lucide-react';
 import { NavigationItem, navigation } from '../../config/navigation';
 import { getRouteByPath } from '../../config/routes';
 import { useAuth, AppRole } from '../../contexts/AuthContext';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -18,49 +18,43 @@ interface FlyoutPanelProps {
   position: { top: number; left: number };
 }
 
-const getVisibleNavigation = (role: AppRole, permissions: string[]): NavigationItem[] => {
-  const filteredNav = navigation.filter(item => {
-    // Admin sees everything
-    if (role === 'Admin') return true;
+const getVisibleNavigation = (permissions: string[]): NavigationItem[] => {
+  console.log('Sidebar: Filtering navigation with permissions:', permissions);
+  
+  // If user has admin permissions or wildcard, show everything
+  if (permissions.includes('*') || permissions.includes('admin.*')) {
+    console.log('Sidebar: User has admin access, showing all navigation');
+    return navigation;
+  }
+
+  // Filter modules based on permissions
+  const filteredNav = navigation.filter(module => {
+    // Check if user has module-level access
+    const hasModuleAccess = permissions.includes(`${module.id}.view`);
     
-    // Filter based on role
-    switch (role) {
-      case 'Employee':
-        return !['company-settings'].includes(item.id) || 
-               (item.id === 'company-settings' && item.children?.some(child => 
-                 !['roles-permissions', 'system-settings'].includes(child.id)
-               ));
-      case 'Agent':
-        return ['leads', 'meetings', 'calls', 'visits'].some(allowed => 
-          item.id.includes(allowed) || item.children?.some(child => child.id.includes(allowed))
-        );
-      case 'Subscriber':
-        return ['profile', 'chits', 'payments', 'support'].some(allowed => 
-          item.id.includes(allowed) || item.children?.some(child => child.id.includes(allowed))
-        );
-      default:
-        return false;
-    }
+    // Check if user has access to any pages in this module
+    const hasPageAccess = module.children?.some(page => 
+      permissions.includes(`${page.id}.view`)
+    );
+    
+    const shouldShow = hasModuleAccess || hasPageAccess;
+    console.log(`Sidebar: Module ${module.name} - hasModuleAccess: ${hasModuleAccess}, hasPageAccess: ${hasPageAccess}, shouldShow: ${shouldShow}`);
+    
+    return shouldShow;
   });
 
-  // Filter children based on permissions
-  return filteredNav.map(item => ({
-    ...item,
-    children: item.children?.filter(child => {
-      if (role === 'Admin') return true;
-      
-      switch (role) {
-        case 'Employee':
-          return !['roles-permissions', 'system-settings'].includes(child.id);
-        case 'Agent':
-          return ['leads', 'meetings', 'calls', 'visits'].some(allowed => child.id.includes(allowed));
-        case 'Subscriber':
-          return ['profile', 'chits', 'payments', 'support'].some(allowed => child.id.includes(allowed));
-        default:
-          return false;
-      }
+  // Filter children based on page-level permissions
+  const result = filteredNav.map(module => ({
+    ...module,
+    children: module.children?.filter(page => {
+      const hasAccess = permissions.includes(`${page.id}.view`);
+      console.log(`Sidebar: Page ${page.name} - hasAccess: ${hasAccess}`);
+      return hasAccess;
     })
   }));
+  
+  console.log('Sidebar: Final filtered navigation:', result.map(m => ({ name: m.name, children: m.children?.length || 0 })));
+  return result;
 };
 
 const FlyoutPanel: React.FC<FlyoutPanelProps> = ({ item, isOpen, onClose, position }) => {
@@ -222,12 +216,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   useEffect(() => {
     if (user?.id) {
-      const savedAvatar = localStorage.getItem(`userAvatar_${user.id}`);
+      const savedAvatar = localStorage.getItem(`user_avatar_${user.id}`);
       setUserAvatar(savedAvatar);
     }
   }, [user?.id]);
 
-  const visibleNavigation = user ? getVisibleNavigation(user.role, user.permissions) : navigation;
+  // Listen for permission updates
+  useEffect(() => {
+    const handlePermissionUpdate = () => {
+      console.log('Sidebar: Permissions updated, refreshing navigation...');
+      // Force re-render by updating a state that triggers navigation recalculation
+      setSearchTerm(prev => prev); // Trigger re-render
+    };
+
+    window.addEventListener('permissionsUpdated', handlePermissionUpdate);
+    window.addEventListener('usersUpdated', handlePermissionUpdate);
+    
+    return () => {
+      window.removeEventListener('permissionsUpdated', handlePermissionUpdate);
+      window.removeEventListener('usersUpdated', handlePermissionUpdate);
+    };
+  }, []);
+
+  const visibleNavigation = useMemo(() => {
+    if (!user) {
+      console.log('Sidebar: No user, showing empty navigation');
+      return [];
+    }
+    
+    console.log('Sidebar: User permissions:', user.permissions);
+    return getVisibleNavigation(user.permissions);
+  }, [user?.permissions, user?.id]);
 
   const handleOpenFlyout = (item: NavigationItem, position: { top: number; left: number }) => {
     setFlyoutItem(item);
@@ -241,6 +260,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const filteredNavigation = visibleNavigation.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  console.log('Sidebar: Rendering with filtered navigation:', filteredNavigation.map(n => n.name));
 
   return (
     <>
@@ -302,6 +323,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onOpenFlyout={handleOpenFlyout}
             />
           ))}
+          
+          {filteredNavigation.length === 0 && !isCollapsed && (
+            <div className="text-center py-8">
+              <Shield className="h-8 w-8 mx-auto text-slate-500 mb-2" />
+              <p className="text-slate-400 text-sm">No modules available</p>
+              <p className="text-slate-500 text-xs">Contact admin for access</p>
+            </div>
+          )}
         </nav>
 
         {/* Footer */}
