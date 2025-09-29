@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Eye, Target, TrendingUp, DollarSign, Users, CheckSquare, Calendar, Award, AlertTriangle, Star, Activity, BarChart3, PieChart, Filter, Download, Upload, Settings, MoreVertical, User, Building, Clock, CheckCircle, XCircle, Flag, Zap, Crown, Save, X, RefreshCw } from 'lucide-react';
+import { Plus, Search, CreditCard as Edit, Trash2, Eye, Target, TrendingUp, DollarSign, Users, CheckSquare, Calendar, Award, AlertTriangle, Star, Activity, BarChart3, PieChart, Filter, Download, Upload, Settings, MoreVertical, User, Building, Clock, CheckCircle, XCircle, Flag, Zap, Crown, Save, X, RefreshCw } from 'lucide-react';
 import { EmployeeKPI, KPITarget, KPIAchievement } from '../../types/kpi';
 import { getEmployeeKPIs, saveEmployeeKPIs, updateKPIAchievement, initializeKPIData } from '../../data/kpi.mock';
 import { getEmployees, initializeEmployeesData } from '../../data/employees.mock';
